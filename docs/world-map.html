@@ -39,10 +39,305 @@
         #world-map {
             width: 100%;
             height: 80vh;
+            background-color: white;
         }
         .country {
             stroke: #fff;
             stroke-width: 0.5px;
+            cursor: pointer;
+            transition: stroke-width 0.2s;
+        }
+        .map-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+        }
+        
+        /* Modern Toggle Switch Container */
+        .toggle-switch-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Toggle Switch Track */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 280px;
+            height: 48px;
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.95) 0%, rgba(226, 232, 240, 0.95) 100%);
+            border-radius: 24px;
+            border: 2px solid rgba(203, 213, 225, 0.8);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12), inset 0 2px 4px rgba(0,0,0,0.06);
+            -webkit-backdrop-filter: blur(8px);
+                    backdrop-filter: blur(8px);
+        }
+        
+        .toggle-switch:hover {
+            box-shadow: 0 6px 25px rgba(0,0,0,0.12), inset 0 2px 4px rgba(0,0,0,0.1), 0 0 0 4px rgba(30, 41, 59, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        /* Toggle Switch Slider */
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 88px;
+            height: 40px;
+            background: linear-gradient(135deg, rgb(30, 41, 59) 0%, rgb(51, 65, 85) 100%);
+            border-radius: 20px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 3px 10px rgba(30, 41, 59, 0.4), 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 11px;
+            letter-spacing: 0.6px;
+        }
+        
+        /* Toggle Options */
+        .toggle-option {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 0.6px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            -webkit-user-select: none;
+               -moz-user-select: none;
+                    user-select: none;
+            z-index: 10;
+            padding: 8px 12px;
+            border-radius: 16px;
+            min-width: 65px;
+            text-align: center;
+        }
+        
+        .toggle-option:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+        
+        .toggle-option.left {
+            left: 16.67%;
+            transform: translate(-50%, -50%);
+            color: white;
+        }
+        
+        .toggle-option.center {
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgb(30, 41, 59);
+        }
+        
+        .toggle-option.right {
+            left: 83.33%;
+            transform: translate(-50%, -50%);
+            color: rgb(30, 41, 59);
+        }
+        
+        /* Active states */
+        .toggle-switch[data-active="policies"] .toggle-slider {
+            left: 2px;
+        }
+        
+        .toggle-switch[data-active="policies"] .toggle-option.left {
+            color: white;
+            opacity: 1;
+        }
+        
+        .toggle-switch[data-active="policies"] .toggle-option.center {
+            color: rgb(100, 116, 139);
+            opacity: 0.7;
+        }
+        
+        .toggle-switch[data-active="policies"] .toggle-option.right {
+            color: rgb(100, 116, 139);
+            opacity: 0.7;
+        }
+        
+        .toggle-switch[data-active="ev"] .toggle-slider {
+            left: 96px;
+        }
+        
+        .toggle-switch[data-active="ev"] .toggle-option.left {
+            color: rgb(100, 116, 139);
+            opacity: 0.7;
+        }
+        
+        .toggle-switch[data-active="ev"] .toggle-option.center {
+            color: white;
+            opacity: 1;
+        }
+        
+        .toggle-switch[data-active="ev"] .toggle-option.right {
+            color: rgb(100, 116, 139);
+            opacity: 0.7;
+        }
+        
+        .toggle-switch[data-active="targets"] .toggle-slider {
+            left: 190px;
+        }
+        
+        .toggle-switch[data-active="targets"] .toggle-option.left {
+            color: rgb(100, 116, 139);
+            opacity: 0.7;
+        }
+        
+        .toggle-switch[data-active="targets"] .toggle-option.center {
+            color: rgb(100, 116, 139);
+            opacity: 0.7;
+        }
+        
+        .toggle-switch[data-active="targets"] .toggle-option.right {
+            color: white;
+            opacity: 1;
+        }
+        
+        /* Hide original radio buttons */
+        .map-controls input[type="radio"] {
+            display: none;
+        }
+        
+        .map-controls label {
+            display: none;
+        }
+        
+        /* Targets Submenu Styles */
+        .targets-submenu {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            width: 280px;
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.98) 0%, rgba(226, 232, 240, 0.98) 100%);
+            border: 2px solid rgba(203, 213, 225, 0.8);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.1);
+            -webkit-backdrop-filter: blur(12px);
+                    backdrop-filter: blur(12px);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1001;
+            max-height: 300px;
+            overflow: hidden;
+        }
+        
+        .targets-submenu.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+        }
+        
+        .submenu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, rgb(30, 41, 59) 0%, rgb(51, 65, 85) 100%);
+            color: white;
+            border-radius: 14px 14px 0 0;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+        
+        .submenu-title {
+            flex: 1;
+        }
+        
+        .submenu-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s ease;
+        }
+        
+        .submenu-close:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .submenu-options {
+            padding: 8px;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        
+        .submenu-option {
+            display: block;
+            width: 100%;
+            padding: 10px 12px;
+            margin: 2px 0;
+            background: none;
+            border: none;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: rgb(30, 41, 59);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .submenu-option:hover {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.1) 0%, rgba(51, 65, 85, 0.1) 100%);
+            transform: translateX(4px);
+            color: rgb(30, 41, 59);
+        }
+        
+        .submenu-option.active {
+            background: linear-gradient(135deg, rgb(30, 41, 59) 0%, rgb(51, 65, 85) 100%);
+            color: white;
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(30, 41, 59, 0.3);
+        }
+        
+        .submenu-option.active:hover {
+            background: linear-gradient(135deg, rgb(51, 65, 85) 0%, rgb(71, 85, 105) 100%);
+            color: white;
+        }
+        
+        /* Scrollbar styling for submenu */
+        .submenu-options::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .submenu-options::-webkit-scrollbar-track {
+            background: rgba(203, 213, 225, 0.3);
+            border-radius: 2px;
+        }
+        
+        .submenu-options::-webkit-scrollbar-thumb {
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 2px;
+        }
+        
+        .submenu-options::-webkit-scrollbar-thumb:hover {
+            background: rgba(30, 41, 59, 0.6);
         }
         .country:hover {
             stroke: #333;
@@ -52,16 +347,39 @@
             position: fixed;
             top: 0;
             right: 0;
-            width: 400px;
+            width: 10vw;
+            min-width: 250px;
             max-width: 90%;
             height: 100%;
             background-color: white;
             padding: 20px;
             box-shadow: -2px 0 10px rgba(0,0,0,0.1);
             transform: translateX(100%);
-            transition: transform 0.3s ease-in-out;
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
             z-index: 100;
             overflow-y: auto;
+        }
+        /* Hover effects for clickable chart elements */
+        #pie-chart-container svg:hover,
+        #time-series-chart svg:hover {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transform: translateY(-2px);
+        }
+        
+        #pie-chart-container svg,
+        #time-series-chart svg {
+            transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
+            border-radius: 8px;
+        }
+        
+        /* Hover effect for pie chart slices */
+        #pie-chart-container .slice:hover path {
+            filter: brightness(1.1);
+            stroke-width: 3px;
+        }
+        
+        #pie-chart-container .slice path {
+            transition: filter 0.2s ease-in-out, stroke-width 0.2s ease-in-out;
         }
         #policy-panel.visible {
             transform: translateX(0);
@@ -105,35 +423,29 @@
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.2s ease-out;
-            background-color: white;
         }
-        .accordion-content p {
-            padding-bottom: 15px;
+        #policy-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
-        #world-map-container:not(.loaded) #world-map {
+        #loading-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2em;
+            color: #666;
             display: none;
+            z-index: 10;
         }
-        #world-map-container.loaded #loading-message {
-            display: none;
-        }
-
-        #loading-message::after {
-            display: inline-block;
-            animation: ellipsis 1.25s infinite;
-            content: ".";
-            width: 1em;
-            text-align: left;
-        }
-
-        @keyframes ellipsis {
-            0% { content: "."; }
-            33% { content: ".."; }
-            66% { content: "..."; }
+        #loading-message.visible {
+            display: block;
         }
     </style>
-  <script type="module" crossorigin src="/stp_october/assets/worldMap.js"></script>
-  <link rel="modulepreload" crossorigin href="/stp_october/assets/input.js">
-  <link rel="stylesheet" crossorigin href="/stp_october/assets/input.css">
+  <script type="module" crossorigin src="./assets/worldMap.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/input.js">
+  <link rel="stylesheet" crossorigin href="./assets/input.css">
 </head>
 <body class="bg-stone-800 text-neutral-700 font-serif">
     <header class="text-white">
@@ -157,18 +469,77 @@
 
     <main class="p-4 md:p-8 bg-custom min-h-screen">
         <section class="max-w-7xl mx-auto py-6 text-center">
-            <h2 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline">Renewable Energy Policies Across the Globe</h2>
-            <div id="world-map-container" class="bg-custom p-2 md:p-4 rounded-lg shadow-xl mx-auto max-w-7xl text-center">
+            <h2 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline">Climate Policy Atlas</h2>
+            
+            <div class="bg-custom p-2 md:p-4 rounded-lg shadow-xl mx-auto max-w-7xl text-center relative">
+                <!-- Map Type Controls - Inside Map Container -->
+                <div class="map-controls">
+                    <div class="toggle-switch-container">
+                        <div class="toggle-switch" data-active="policies" id="mapTypeToggle">
+                            <div class="toggle-slider"></div>
+                            <div class="toggle-option left">policies</div>
+                            <div class="toggle-option center">ev</div>
+                            <div class="toggle-option right">targets</div>
+                        </div>
+                        
+                        <!-- Targets Submenu -->
+                        <div class="targets-submenu" id="targetsSubmenu">
+                            <div class="submenu-header">
+                                <span class="submenu-title">Target Types</span>
+                                <button class="submenu-close" id="submenuClose">&times;</button>
+                            </div>
+                            <div class="submenu-options" id="submenuOptions">
+                                <!-- Target type options will be dynamically populated -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                    
+                    <!-- Hidden radio buttons for compatibility -->
+                    <label style="display: none;">
+                        <input type="radio" name="mapType" value="policies" checked>
+                        <span>RE Policies</span>
+                    </label>
+                    <label style="display: none;">
+                        <input type="radio" name="mapType" value="ev">
+                        <span>EV</span>
+                    </label>
+                    <label style="display: none;">
+                        <input type="radio" name="mapType" value="targets">
+                        <span>TARGETS</span>
+                    </label>
+                </div>
+                
+                <div id="loading-message">Loading data, please wait a moment...</div>
                 <svg id="world-map"></svg>
-                <p id="loading-message" class="text-neutral-700">Loading map, this may take a few seconds</p>
             </div>
             <div id="panel-backdrop"></div>
             <div id="policy-panel">
                 <button id="close-panel" style="position: absolute; top: 10px; right: 20px; background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
                 <h3 id="policy-country" class="text-xl font-bold mb-4"></h3>
-                <div id="policy-list"></div>
+                <div id="policy-list" class="flex flex-col gap-4">
+                    <!-- Pie chart container will be dynamically added here -->
+                </div>
+                <div id="time-series-container" class="mt-6">
+                    <h4 class="text-lg font-semibold mb-3 text-gray-700">Policy Evolution Over Time</h4>
+                    <div id="time-series-chart" class="w-full h-64">
+                        <!-- Time series chart will be rendered here -->
+                    </div>
+                </div>
             </div>
         </section>
     </main>
+
+    <!-- Modal for expanded charts (responsive 16:9 aspect ratio) -->
+    <div id="chart-modal" class="fixed inset-0 flex items-center justify-center p-4 z-50 hidden">
+        <div id="modal-window" class="rounded-lg shadow-2xl relative" style="background-color: rgba(255, 255, 255, 0.85); width: 60vw; height: calc(60vw * 9 / 16); max-height: 75vh;">
+            <div id="modal-header" class="flex justify-between items-center p-4 bg-gray-100 bg-opacity-80 rounded-t-lg cursor-move">
+                <h3 id="modal-title" class="text-lg font-semibold text-gray-800">Chart Details</h3>
+                <button id="close-modal" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
+            </div>
+            <div id="modal-content" class="p-4 h-[calc(100%-60px)] overflow-auto"></div>
+        </div>
+    </div>
+
 </body>
 </html>

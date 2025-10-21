@@ -1027,20 +1027,10 @@ Promise.all([
 
     // Function to update map visualization
     function updateMap() {
-        // Show loading indicator when updating map
-        showLoadingIndicator();
-        
         g.selectAll("path")
             .transition()
             .duration(500)
-            .attr("fill", (d: any) => getCountryColor(d.id))
-            .on("end", function() {
-                // Hide loading indicator after transition completes
-                // Only hide on the last element to complete
-                if (this === g.selectAll("path").nodes().slice(-1)[0]) {
-                    hideLoadingIndicator();
-                }
-            });
+            .attr("fill", (d: any) => getCountryColor(d.id));
         
         // Update legend colors
         updateLegendColors(currentMapType);

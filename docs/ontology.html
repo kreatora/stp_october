@@ -192,11 +192,11 @@
             width: 100%;
         }
     </style>
-  <script type="module" crossorigin src="/stp_october/assets/ontology.js"></script>
-  <link rel="modulepreload" crossorigin href="/stp_october/assets/input.js">
-  <link rel="modulepreload" crossorigin href="/stp_october/assets/client.js">
-  <link rel="stylesheet" crossorigin href="/stp_october/assets/input.css">
-  <link rel="stylesheet" crossorigin href="/stp_october/assets/ontology.css">
+  <script type="module" crossorigin src="./assets/ontology.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/input.js">
+  <link rel="modulepreload" crossorigin href="./assets/client.js">
+  <link rel="stylesheet" crossorigin href="./assets/input.css">
+  <link rel="stylesheet" crossorigin href="./assets/ontology.css">
 </head>
 <body class="bg-stone-800 text-neutral-700 font-serif flex flex-col min-h-screen">
     <header class="text-white">
@@ -267,7 +267,7 @@
         // Load ontology data for list view
         async function loadOntologyData() {
             try {
-                const response = await fetch('ontology_summary.json');
+                const response = await fetch('/hehenotdelete/ontology_summary.json');
                 ontologyData = await response.json();
                 populateListView();
             } catch (error) {
