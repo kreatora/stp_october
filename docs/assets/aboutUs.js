@@ -1,0 +1,1 @@
+import"./input.js";import{R as o,j as t,a as r}from"./client.js";const e=document.getElementById("root");e&&o.createRoot(e).render(t.jsx(r.StrictMode,{children:t.jsx("div",{children:"About Us Page - Coming Soon"})}));

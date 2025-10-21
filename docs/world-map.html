@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Map - Climate Policy Atlas</title>
+    <style>
+        .btn-custom {
+            background-color: rgb(100, 140, 88);
+        }
+        .btn-custom:hover {
+            background-color: rgb(141, 192, 133);
+        }
+        .bg-custom {
+            background-color: rgb(221, 227, 214);
+        }
+        .nav-custom {
+            background-color: rgb(50, 70, 53);
+        }
+        .text-custom {
+            color: oklch(0.99 0.02 97.77);
+        }
+        .active-nav {
+            border-bottom: 2px solid oklch(0.99 0.02 97.77);
+            padding-bottom: 2px;
+        }
+        .nav-item-hover {
+            padding-bottom: 2px;
+        }
+        .nav-item-hover:hover {
+            box-shadow: 0 2px 0 0 rgba(255, 255, 255, 0.7);
+        }
+        .title-underline {
+            border-bottom: 1px solid rgb(42, 58, 42);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+        }
+        #world-map {
+            width: 100%;
+            height: 80vh;
+        }
+        .country {
+            stroke: #fff;
+            stroke-width: 0.5px;
+        }
+        .country:hover {
+            stroke: #333;
+            stroke-width: 1px;
+        }
+        #policy-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 400px;
+            max-width: 90%;
+            height: 100%;
+            background-color: white;
+            padding: 20px;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 100;
+            overflow-y: auto;
+        }
+        #policy-panel.visible {
+            transform: translateX(0);
+        }
+        #panel-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 50;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out;
+        }
+        #panel-backdrop.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .accordion-item {
+            border-bottom: 1px solid #ddd;
+        }
+        .accordion-button {
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            outline: none;
+            transition: background-color 0.2s;
+        }
+        .accordion-button:hover, .accordion-button.active {
+            background-color: #f1f1f1;
+        }
+        .accordion-content {
+            padding: 0 15px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+            background-color: white;
+        }
+        .accordion-content p {
+            padding-bottom: 15px;
+        }
+        #world-map-container:not(.loaded) #world-map {
+            display: none;
+        }
+        #world-map-container.loaded #loading-message {
+            display: none;
+        }
+
+        #loading-message::after {
+            display: inline-block;
+            animation: ellipsis 1.25s infinite;
+            content: ".";
+            width: 1em;
+            text-align: left;
+        }
+
+        @keyframes ellipsis {
+            0% { content: "."; }
+            33% { content: ".."; }
+            66% { content: "..."; }
+        }
+    </style>
+  <script type="module" crossorigin src="/stp_o/assets/worldMap.js"></script>
+  <link rel="modulepreload" crossorigin href="/stp_o/assets/input.js">
+  <link rel="stylesheet" crossorigin href="/stp_o/assets/input.css">
+</head>
+<body class="bg-stone-800 text-neutral-700 font-serif">
+    <header class="text-white">
+        <div class="bg-[rgb(42,58,42)] py-6">
+            <div class="container mx-auto text-center">
+                <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-custom">Climate Policy Atlas</h1>
+            </div>
+        </div>
+        <div class="nav-custom py-4">
+            <nav class="container mx-auto text-center">
+                <ul class="flex justify-center space-x-4 md:space-x-6">
+                    <li><a href="index.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">Home</a></li>
+                    <li><a href="ontology.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">Ontology</a></li>
+                    <li><a href="world-map.html" class="text-custom hover:text-white transition-colors duration-200 active-nav nav-item-hover">World Map</a></li>
+                    <li><a href="data.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">Data</a></li>
+                    <li><a href="about-us.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">About Us</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="p-4 md:p-8 bg-custom min-h-screen">
+        <section class="max-w-7xl mx-auto py-6 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline">Renewable Energy Policies Across the Globe</h2>
+            <div id="world-map-container" class="bg-custom p-2 md:p-4 rounded-lg shadow-xl mx-auto max-w-7xl text-center">
+                <svg id="world-map"></svg>
+                <p id="loading-message" class="text-neutral-700">Loading map, this may take a few seconds</p>
+            </div>
+            <div id="panel-backdrop"></div>
+            <div id="policy-panel">
+                <button id="close-panel" style="position: absolute; top: 10px; right: 20px; background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+                <h3 id="policy-country" class="text-xl font-bold mb-4"></h3>
+                <div id="policy-list"></div>
+            </div>
+        </section>
+    </main>
+</body>
+</html> 

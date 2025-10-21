@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ontology - Sustainability Transition</title>
+    <link rel="stylesheet" href="src/input.css">
+    <style>
+        .btn-custom {
+            background-color: rgb(100, 140, 88);
+        }
+        .btn-custom:hover {
+            background-color: rgb(141, 192, 133);
+        }
+        .bg-custom {
+            background-color: rgb(221, 227, 214);
+        }
+        .nav-custom {
+            background-color: rgb(50, 70, 53);
+        }
+        .text-custom {
+            color: oklch(0.99 0.02 97.77);
+        }
+        .active-nav {
+            border-bottom: 2px solid oklch(0.99 0.02 97.77);
+            padding-bottom: 2px;
+        }
+        .nav-item-hover {
+            transition: box-shadow 0.1s ease;
+            padding-bottom: 2px;
+        }
+        .nav-item-hover:hover {
+            box-shadow: 0 2px 0 0 rgba(255, 255, 255, 0.7);
+            padding-bottom: 2px;
+        }
+        .title-underline {
+            border-bottom: 1px solid rgb(42, 58, 42);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+        }
+        .view-toggle-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            justify-content: center;
+        }
+        .view-button {
+            background-color: rgb(100, 140, 88);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .view-button:hover {
+            background-color: rgb(141, 192, 133);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        .view-button.active {
+            background-color: rgb(42, 58, 42);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .view-button:disabled {
+            background-color: rgb(156, 163, 175);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* List View Styles */
+        .list-view-container {
+            display: none;
+            min-height: 700px;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            background: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .list-view-container.active {
+            display: flex;
+        }
+        .list-view-sidebar {
+            width: 300px;
+            background-color: #f9fafb;
+            border-right: 1px solid #e5e7eb;
+            padding: 1rem;
+            overflow-y: auto;
+            max-height: 700px;
+            position: relative;
+        }
+        .list-view-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        .level-section {
+            margin-bottom: 0.5rem;
+            position: relative;
+        }
+        .level-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .level-item:hover {
+            background-color: rgb(221, 227, 214);
+            border-color: rgb(100, 140, 88);
+        }
+        .level-item.selected {
+            background-color: rgb(100, 140, 88);
+            color: white;
+            border-color: rgb(42, 58, 42);
+        }
+        .level-item.parent-item {
+            font-weight: 600;
+            background-color: #f3f4f6;
+        }
+        .level-item.parent-item:hover {
+            background-color: rgb(221, 227, 214);
+        }
+        .level-item.parent-item.selected {
+            background-color: rgb(100, 140, 88);
+            color: white;
+        }
+        .children-container {
+            margin-left: 1rem;
+            border-left: 2px solid rgb(100, 140, 88);
+            padding-left: 0.5rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+        .children-container.expanded {
+            display: block;
+        }
+        .child-item {
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.25rem;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+        .child-item:hover {
+            background-color: rgb(221, 227, 214);
+            border-color: rgb(100, 140, 88);
+        }
+        .child-item.selected {
+            background-color: rgb(100, 140, 88);
+            color: white;
+            border-color: rgb(42, 58, 42);
+        }
+        .content-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: rgb(42, 58, 42);
+            margin-bottom: 1rem;
+        }
+        .content-definition {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #374151;
+        }
+        .content-placeholder {
+            text-align: center;
+            color: #6b7280;
+            font-style: italic;
+            margin-top: 3rem;
+        }
+        #level-navigation {
+            position: relative;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-stone-800 text-neutral-700 font-serif flex flex-col min-h-screen">
+    <header class="text-white">
+        <div class="bg-[rgb(42,58,42)] py-6">
+            <div class="container mx-auto text-center">
+                <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-custom">Climate Policy Atlas</h1>
+            </div>
+        </div>
+        <div class="nav-custom py-4">
+            <nav class="container mx-auto text-center">
+                <ul class="flex justify-center space-x-4 md:space-x-6">
+                    <li><a href="index.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">Home</a></li>
+                    <li><a href="ontology.html" class="text-custom hover:text-white transition-colors duration-200 active-nav nav-item-hover">Ontology</a></li>
+                    <li><a href="world-map.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">World Map</a></li>
+                    <li><a href="data.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">Data</a></li>
+                    <li><a href="about-us.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">About Us</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-1 p-4 md:p-8 bg-custom">
+        <section class="mb-12 md:mb-16 max-w-7xl mx-auto">
+            <h2 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline">Ontology</h2>
+            <p class="text-lg text-neutral-700 mb-8">Our sustainability transition ontology provides a comprehensive framework for understanding the complex relationships between policies, technologies, stakeholders, and environmental factors that drive sustainable transformation. This interactive visualization maps key concepts, their interconnections, and hierarchical structures within sustainability transition research, offering researchers and policymakers a structured way to explore and analyze the multidimensional nature of transition processes across different sectors and regions.</p>
+            
+            <!-- View Toggle Buttons -->
+            <div class="view-toggle-buttons">
+                <button id="tree-view-btn" class="view-button active" onclick="switchToTreeView()">
+                    Tree View
+                </button>
+                <button id="list-view-btn" class="view-button" onclick="switchToListView()">
+                    List View
+                </button>
+            </div>
+            
+            <!-- Tree View Container -->
+            <div id="ontology-container" class="w-full min-h-[900px] md:min-h-[1000px] border border-gray-300 rounded-md p-6 md:p-8 bg-white shadow-lg">
+                <!-- The ontologyvisualization.tsx component will be rendered here -->
+            </div>
+            
+            <!-- Tree View Instructions -->
+            <p id="tree-view-instructions" class="text-sm text-gray-600 italic mt-2 mb-4 text-center">
+                Click on nodes to expand/collapse and explore the tree. Use mouse wheel to zoom, drag to pan around the visualization.
+            </p>
+            
+            <!-- List View Container -->
+            <div id="list-view-container" class="list-view-container">
+                <div class="list-view-sidebar">
+                    <div id="level-navigation">
+                        <!-- Navigation levels will be populated here -->
+                        <div class="content-placeholder">Loading ontology levels...</div>
+                    </div>
+                </div>
+                <div class="list-view-content">
+                    <div id="content-display">
+                        <div class="content-placeholder">Select an item from the left navigation to view its details</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="/src/ontology.tsx"></script>
+    <script>
+        let ontologyData = null;
+        let currentView = 'tree';
+        
+        // Load ontology data for list view
+        async function loadOntologyData() {
+            try {
+                const response = await fetch('ontology_summary.json');
+                ontologyData = await response.json();
+                populateListView();
+            } catch (error) {
+                console.error('Error loading ontology data:', error);
+                document.getElementById('level-navigation').innerHTML = 
+                    '<div class="content-placeholder">Error loading ontology data</div>';
+            }
+        }
+        
+        function populateListView() {
+            if (!ontologyData) return;
+            
+            const navigation = document.getElementById('level-navigation');
+            navigation.innerHTML = '';
+            
+            // Start with only the root level (Level 0)
+            createLevelItem(ontologyData, navigation, 0);
+        }
+        
+        function createLevelItem(node, container, level, isChild = false) {
+            const hasChildren = node.children && node.children.length > 0;
+            
+            // Create the main item container
+            const itemContainer = document.createElement('div');
+            itemContainer.className = 'level-section';
+            
+            // Create the item element
+            const itemElement = document.createElement('div');
+            itemElement.className = isChild ? 'child-item' : 'level-item';
+            if (hasChildren && !isChild) {
+                itemElement.classList.add('parent-item');
+            }
+            
+            // Create item content
+            const itemContent = document.createElement('span');
+            itemContent.textContent = node.name;
+            itemContent.style.flex = '1';
+            itemContent.style.marginRight = '0.5rem';
+            itemElement.appendChild(itemContent);
+            
+            // Add chevron indicator for items with children
+            if (hasChildren) {
+                const chevron = document.createElement('span');
+                chevron.innerHTML = '▶';
+                chevron.className = 'chevron-indicator';
+                chevron.style.cssText = `
+                    font-size: 0.6rem;
+                    color: #6b7280;
+                    transition: transform 0.2s ease;
+                    user-select: none;
+                    margin-left: auto;
+                `;
+                itemElement.appendChild(chevron);
+            }
+            
+            // Add click handler for item selection
+            itemElement.onclick = (e) => {
+                // Always select the item first to show its content
+                selectItem(itemElement, node);
+                
+                // Collapse sibling children containers to keep interface clean
+                if (isChild) {
+                    // For child items, collapse sibling children containers at the same level
+                    const parentContainer = itemContainer.parentElement;
+                    if (parentContainer) {
+                        const siblingContainers = parentContainer.querySelectorAll('.children-container.expanded');
+                        siblingContainers.forEach(container => {
+                            // Only collapse if it's not this item's own children container
+                            if (container !== itemContainer.querySelector('.children-container')) {
+                                container.classList.remove('expanded');
+                                // Reset chevron for collapsed container
+                                const siblingItem = container.parentElement.querySelector('.level-item, .child-item');
+                                const siblingChevron = siblingItem?.querySelector('.chevron-indicator');
+                                if (siblingChevron) siblingChevron.style.transform = 'rotate(0deg)';
+                            }
+                        });
+                    }
+                } else {
+                    // For top-level items, collapse all other top-level children containers
+                    const allTopLevelContainers = document.querySelectorAll('#level-navigation > .level-section > .children-container.expanded');
+                    allTopLevelContainers.forEach(container => {
+                        const containerParent = container.parentElement;
+                        if (containerParent !== itemContainer) {
+                            container.classList.remove('expanded');
+                            // Reset chevron for collapsed container
+                            const topLevelItem = containerParent.querySelector('.level-item');
+                            const topLevelChevron = topLevelItem?.querySelector('.chevron-indicator');
+                            if (topLevelChevron) topLevelChevron.style.transform = 'rotate(0deg)';
+                        }
+                    });
+                }
+                
+                // Handle expand/collapse for items with children
+                if (hasChildren) {
+                    const currentChildrenContainer = itemContainer.querySelector('.children-container');
+                    const wasExpanded = currentChildrenContainer && currentChildrenContainer.classList.contains('expanded');
+                    const chevron = itemElement.querySelector('.chevron-indicator');
+                    
+                    // Toggle this item's children container
+                    if (!wasExpanded && currentChildrenContainer) {
+                        currentChildrenContainer.classList.add('expanded');
+                        if (chevron) chevron.style.transform = 'rotate(90deg)';
+                    } else if (wasExpanded && currentChildrenContainer) {
+                        currentChildrenContainer.classList.remove('expanded');
+                        if (chevron) chevron.style.transform = 'rotate(0deg)';
+                    }
+                }
+                
+                // Prevent event bubbling to avoid triggering parent handlers
+                e.stopPropagation();
+            };
+            
+            // Store node data
+            itemElement.dataset.name = node.name;
+            itemElement.dataset.originalName = node.original_name;
+            itemElement.dataset.definition = node.definition || node.original_name;
+            
+            itemContainer.appendChild(itemElement);
+            
+            // Create children container if there are children
+            if (hasChildren) {
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'children-container';
+                
+                node.children.forEach(child => {
+                    createLevelItem(child, childrenContainer, level + 1, true);
+                });
+                
+                itemContainer.appendChild(childrenContainer);
+            }
+            
+            container.appendChild(itemContainer);
+        }
+        
+        function selectItem(itemElement, nodeData) {
+            // Remove previous selections
+            document.querySelectorAll('.level-item.selected, .child-item.selected').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Select current item
+            itemElement.classList.add('selected');
+            
+            // Display content
+            const contentDisplay = document.getElementById('content-display');
+            const name = nodeData.name;
+            const definition = nodeData.original_name;
+            
+            contentDisplay.innerHTML = `
+                <div class="content-header">${name}</div>
+                <div class="content-definition">${definition}</div>
+            `;
+        }
+        
+        function switchToTreeView() {
+            const treeBtn = document.getElementById('tree-view-btn');
+            const listBtn = document.getElementById('list-view-btn');
+            const treeContainer = document.getElementById('ontology-container');
+            const listContainer = document.getElementById('list-view-container');
+            const treeInstructions = document.getElementById('tree-view-instructions');
+            
+            // Update button states
+            treeBtn.classList.add('active');
+            listBtn.classList.remove('active');
+            
+            // Show tree view, hide list view
+            treeContainer.style.display = 'block';
+            listContainer.classList.remove('active');
+            treeInstructions.style.display = 'block';
+            
+            currentView = 'tree';
+        }
+        
+        function switchToListView() {
+            const treeBtn = document.getElementById('tree-view-btn');
+            const listBtn = document.getElementById('list-view-btn');
+            const treeContainer = document.getElementById('ontology-container');
+            const listContainer = document.getElementById('list-view-container');
+            const treeInstructions = document.getElementById('tree-view-instructions');
+            
+            // Update button states
+            treeBtn.classList.remove('active');
+            listBtn.classList.add('active');
+            
+            // Show list view, hide tree view
+            treeContainer.style.display = 'none';
+            listContainer.classList.add('active');
+            treeInstructions.style.display = 'none';
+            
+            currentView = 'list';
+            
+            // Load data if not already loaded
+            if (!ontologyData) {
+                loadOntologyData();
+            } else {
+                populateListView();
+            }
+        }
+    </script>
+</body>
+</html> 
