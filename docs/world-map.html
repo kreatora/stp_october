@@ -51,7 +51,7 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            z-index: 1000;
+            z-index: 20; /* Keep inside map box and under modal */
             display: flex;
             justify-content: flex-start;
             align-items: flex-start;
@@ -67,6 +67,7 @@
         .toggle-switch {
             position: relative;
             display: inline-block;
+            /* Width/height will be adapted via JS to ~8% of map width */
             width: 280px;
             height: 48px;
             background: linear-gradient(135deg, rgba(248, 250, 252, 0.95) 0%, rgba(226, 232, 240, 0.95) 100%);
@@ -89,8 +90,9 @@
             position: absolute;
             top: 2px;
             left: 2px;
-            width: 88px;
-            height: 40px;
+            /* Slider width tracks one third of the toggle width */
+            width: calc(33.33% - 4px);
+            height: calc(100% - 8px);
             background: linear-gradient(135deg, rgb(30, 41, 59) 0%, rgb(51, 65, 85) 100%);
             border-radius: 20px;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -168,7 +170,7 @@
         }
         
         .toggle-switch[data-active="ev"] .toggle-slider {
-            left: 96px;
+            left: calc(33.33% + 2px);
         }
         
         .toggle-switch[data-active="ev"] .toggle-option.left {
@@ -187,7 +189,7 @@
         }
         
         .toggle-switch[data-active="targets"] .toggle-slider {
-            left: 190px;
+            left: calc(66.66% + 2px);
         }
         
         .toggle-switch[data-active="targets"] .toggle-option.left {
@@ -230,7 +232,7 @@
             visibility: hidden;
             transform: translateY(-10px) scale(0.95);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1001;
+            z-index: 21; /* Slightly above toggle, still below modal */
             max-height: 300px;
             overflow: hidden;
         }
@@ -472,30 +474,7 @@
             <h2 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline">Climate Policy Atlas</h2>
             
             <div class="bg-custom p-2 md:p-4 rounded-lg shadow-xl mx-auto max-w-7xl text-center relative">
-                <!-- Map Type Controls - Inside Map Container -->
-                <div class="map-controls">
-                    <div class="toggle-switch-container">
-                        <div class="toggle-switch" data-active="policies" id="mapTypeToggle">
-                            <div class="toggle-slider"></div>
-                            <div class="toggle-option left">policies</div>
-                            <div class="toggle-option center">ev</div>
-                            <div class="toggle-option right">targets</div>
-                        </div>
-                        
-                        <!-- Targets Submenu -->
-                        <div class="targets-submenu" id="targetsSubmenu">
-                            <div class="submenu-header">
-                                <span class="submenu-title">Target Types</span>
-                                <button class="submenu-close" id="submenuClose">&times;</button>
-                            </div>
-                            <div class="submenu-options" id="submenuOptions">
-                                <!-- Target type options will be dynamically populated -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                    
-                    <!-- Hidden radio buttons for compatibility -->
+                <!-- Hidden radio buttons for compatibility -->
                     <label style="display: none;">
                         <input type="radio" name="mapType" value="policies" checked>
                         <span>RE Policies</span>
@@ -508,10 +487,36 @@
                         <input type="radio" name="mapType" value="targets">
                         <span>TARGETS</span>
                     </label>
-                </div>
                 
                 <div id="loading-message">Loading data, please wait a moment...</div>
-                <svg id="world-map"></svg>
+                
+                <!-- Map box wrapper to anchor controls inside the SVG area -->
+                <div id="world-map-container" class="relative">
+                    <svg id="world-map"></svg>
+                    
+                    <!-- Map Type Controls - Fully inside the map box -->
+                    <div class="map-controls">
+                        <div class="toggle-switch-container">
+                            <div class="toggle-switch" data-active="policies" id="mapTypeToggle">
+                                <div class="toggle-slider"></div>
+                                <div class="toggle-option left">policies</div>
+                                <div class="toggle-option center">ev</div>
+                                <div class="toggle-option right">targets</div>
+                            </div>
+                            
+                            <!-- Targets Submenu -->
+                            <div class="targets-submenu" id="targetsSubmenu">
+                                <div class="submenu-header">
+                                    <span class="submenu-title">Target Types</span>
+                                    <button class="submenu-close" id="submenuClose">&times;</button>
+                                </div>
+                                <div class="submenu-options" id="submenuOptions">
+                                    <!-- Target type options will be dynamically populated -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div id="panel-backdrop"></div>
             <div id="policy-panel">
@@ -530,11 +535,11 @@
         </section>
     </main>
 
-    <!-- Modal for expanded charts (responsive 16:9 aspect ratio) -->
+    <!-- Modal for dashboard (adaptive 85% of viewport) -->
     <div id="chart-modal" class="fixed inset-0 flex items-center justify-center p-4 z-50 hidden">
-        <div id="modal-window" class="rounded-lg shadow-2xl relative" style="background-color: rgba(255, 255, 255, 0.85); width: 60vw; height: calc(60vw * 9 / 16); max-height: 75vh;">
+        <div id="modal-window" class="rounded-lg shadow-2xl relative" style="background-color: rgba(255, 255, 255, 0.90); width: 85vw; height: 85vh;">
             <div id="modal-header" class="flex justify-between items-center p-4 bg-gray-100 bg-opacity-80 rounded-t-lg cursor-move">
-                <h3 id="modal-title" class="text-lg font-semibold text-gray-800">Chart Details</h3>
+                <h3 id="modal-title" class="text-lg font-semibold text-gray-800">Country Dashboard</h3>
                 <button id="close-modal" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
             </div>
             <div id="modal-content" class="p-4 h-[calc(100%-60px)] overflow-auto"></div>
