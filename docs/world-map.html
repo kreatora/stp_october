@@ -286,7 +286,35 @@
             max-height: 340px;
             overflow-y: auto;
         }
-        /* filter mode UI removed */
+        
+        .filter-mode-wrapper {
+            padding: 8px 12px 4px 12px;
+            border-bottom: 1px solid rgba(203, 213, 225, 0.6);
+        }
+        .filter-mode-options { display: flex; gap: 8px; }
+        .mode-option {
+            flex: 1;
+            padding: 8px 10px;
+            background: none;
+            border: 1px solid rgba(100, 116, 139, 0.35);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: rgb(30, 41, 59);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .mode-option:hover {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.08) 0%, rgba(51, 65, 85, 0.08) 100%);
+        }
+        .mode-option.active {
+            background: linear-gradient(135deg, rgb(30, 41, 59) 0%, rgb(51, 65, 85) 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 2px 8px rgba(30, 41, 59, 0.3);
+        }
+
         /* Year group UI */
         .year-group-wrapper {
             padding: 8px 12px 4px 12px;
@@ -555,7 +583,6 @@
                                     <span class="submenu-title">Target Types</span>
                                     <button class="submenu-close" id="submenuClose">&times;</button>
                                 </div>
-                                
                                 <div class="year-group-wrapper" id="yearGroupWrapper">
                                     <div class="year-group-title">Targeted Year</div>
                                     <div class="year-group-options" id="yearGroupOptions"></div>
