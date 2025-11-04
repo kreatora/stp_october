@@ -282,53 +282,39 @@ function createFullScreenTimeSeriesChart(timeSeriesChartData: any[], countryName
         // Responsive margins for smaller screens
         const isSmallScreen = containerRect.width < 768;
         const margin = isSmallScreen 
-            ? { top: 30, right: 120, bottom: 60, left: 60 }
-            : { top: 40, right: 200, bottom: 80, left: 80 };
+            ? { top: 30, right: 60, bottom: 60, left: 120 }
+            : { top: 40, right: 80, bottom: 80, left: 140 };
         const width = containerRect.width - margin.left - margin.right;
         const extraSpace = isSmallScreen ? 60 : 100;
         const height = containerRect.height - margin.top - margin.bottom - extraSpace;
 
-        // Convert timeSeriesChartData to cumulative stacked bar chart data
+        // Collect measures and years; build presence matrix
         const measures = new Set<string>();
         const years = new Set<number>();
-        
-        // Collect all measures and years
         timeSeriesChartData.forEach(measureData => {
             measures.add(measureData.measure);
-            measureData.values.forEach((v: any) => {
-                years.add(Number(v.year));
-            });
+            measureData.values.forEach((v: any) => years.add(Number(v.year)));
         });
 
         const sortedYears = Array.from(years).sort((a, b) => a - b);
-        const allPolicyTypes = new Set<string>();
+        const allPolicyTypes = Array.from(measures);
         const yearlyData: { [year: number]: { [measure: string]: number } } = {};
-
-        // Initialize yearly data structure
+        sortedYears.forEach(year => { yearlyData[year] = {}; });
         sortedYears.forEach(year => {
-            yearlyData[year] = {};
-        });
-
-        // Build yearly data - count only policies that are active in each specific year
-        sortedYears.forEach(year => {
-            // Check which policy types are active this year
             timeSeriesChartData.forEach(measureData => {
                 const yearData = measureData.values.find((v: any) => Number(v.year) === year);
                 if (yearData && Number(yearData.count) > 0) {
-                    yearlyData[year][measureData.measure] = 1; // Each policy type counts as 1
-                    allPolicyTypes.add(measureData.measure);
+                    yearlyData[year][measureData.measure] = 1;
                 }
             });
         });
 
-        // Prepare stacked data
-        const stackedData = sortedYears.map(year => {
-            const yearData: any = { year };
-            Array.from(allPolicyTypes).forEach(measure => {
-                yearData[measure] = yearlyData[year][measure] || 0;
-            });
-            return yearData;
+        // Compute frequency per policy type and sort ascending (least at top, most at bottom)
+        const frequencyByMeasure: { [m: string]: number } = {};
+        allPolicyTypes.forEach(m => {
+            frequencyByMeasure[m] = sortedYears.reduce((acc, y) => acc + (yearlyData[y][m] ? 1 : 0), 0);
         });
+        const sortedPolicyTypes = allPolicyTypes.slice().sort((a, b) => frequencyByMeasure[a] - frequencyByMeasure[b]);
 
         const svgHeightOffset = isSmallScreen ? 30 : 50;
         const svg = d3.select(container)
@@ -339,176 +325,95 @@ function createFullScreenTimeSeriesChart(timeSeriesChartData: any[], countryName
         const g = svg.append('g')
             .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
-        // Scales
+        // Scales: x years, y policy types as rows
         const xScale = d3.scaleBand()
             .domain(sortedYears.map(String))
             .range([0, width])
+            .padding(0.05);
+
+        const yBand = d3.scaleBand()
+            .domain(sortedPolicyTypes)
+            .range([0, height])
             .padding(0.1);
 
-        const maxStackHeight = Math.max(...sortedYears.map(year => 
-            Array.from(allPolicyTypes).reduce((sum, measure) => 
-                sum + (yearlyData[year][measure] || 0), 0)
-        ));
-
-        const yScale = d3.scaleLinear()
-            .domain([0, maxStackHeight])
-            .range([height, 0]);
-
-        // Create stack generator
-        const stack = d3.stack()
-            .keys(Array.from(allPolicyTypes));
-
-        const stackedSeries = stack(stackedData);
-
-        // Add axes
+        // Add axes with adaptive tick density for readability
         const axisFontSize = isSmallScreen ? '11px' : '14px';
-        g.append('g')
+        const xDomainFS = xScale.domain();
+        const stepFS = xDomainFS.length > 24 ? 3 : (xDomainFS.length > 14 ? 2 : 1);
+        const xTicksFS = xDomainFS.filter((_, i) => i % stepFS === 0);
+        const xAxisFS = g.append('g')
             .attr('transform', `translate(0,${height})`)
-            .call(d3.axisBottom(xScale))
-            .selectAll('text')
-            .style('font-size', axisFontSize);
+            .call(d3.axisBottom(xScale).tickValues(xTicksFS))
+            .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif');
+        xAxisFS.selectAll('text')
+            .style('font-size', axisFontSize)
+            .style('text-anchor', 'middle')
+            .attr('dx', '0')
+            .attr('dy', '0');
+        const yAxisFS = g.append('g').call(d3.axisLeft(yBand));
+        yAxisFS.selectAll('text').style('font-size', axisFontSize);
+        xAxisFS.select('.domain').style('stroke', '#e2e8f0').style('stroke-width', 1);
+        yAxisFS.select('.domain').style('stroke', '#e2e8f0').style('stroke-width', 1);
 
-        g.append('g')
-            .call(d3.axisLeft(yScale).tickFormat(d3.format('d')).ticks(Math.min(maxStackHeight, 10)))
-            .selectAll('text')
-            .style('font-size', axisFontSize);
-
-        // Create gradients for each bar
-        const defs = svg.append('defs');
-        stackedSeries.forEach(series => {
-            series.forEach(d => {
-                const baseColor = globalColorScale(series.key) || '#3b82f6';
-                const gradient = defs.append('linearGradient')
-                    .attr('id', `gradient-${d.data.year}-${d[0]}`)
-                    .attr('x1', '0%')
-                    .attr('y1', '0%')
-                    .attr('x2', '0%')
-                    .attr('y2', '100%');
-                
-                gradient.append('stop')
-                    .attr('offset', '0%')
-                    .attr('stop-color', baseColor)
-                    .attr('stop-opacity', 1);
-                
-                gradient.append('stop')
-                    .attr('offset', '100%')
-                    .attr('stop-color', d3.color(baseColor)?.darker(0.3)?.toString() || '#1e40af')
-                    .attr('stop-opacity', 1);
+        // Build cell data: one rect per active policy in that year
+        const cells: { year: number; measure: string }[] = [];
+        sortedYears.forEach(year => {
+            sortedPolicyTypes.forEach(measure => {
+                if (yearlyData[year][measure]) {
+                    cells.push({ year, measure });
+                }
             });
         });
 
-        // Add modern stacked bars with gradients and animations
-        g.selectAll('.stack')
-            .data(stackedSeries)
-            .enter().append('g')
-            .attr('class', 'stack')
-            .selectAll('rect')
-            .data(d => d)
-            .enter().append('rect')
-            .attr('x', d => xScale(String(d.data.year)) || 0)
-            .attr('y', d => yScale(d[1]))
-            .attr('height', d => yScale(d[0]) - yScale(d[1]))
+        // Draw rows of cells (non-stacked)
+        g.selectAll('.policy-cell')
+            .data(cells)
+            .enter()
+            .append('rect')
+            .attr('class', 'policy-cell')
+            .attr('x', d => xScale(String(d.year)) || 0)
+            .attr('y', d => yBand(d.measure) || 0)
             .attr('width', xScale.bandwidth())
-            .attr('rx', 3)
-            .attr('ry', 3)
-            .attr('fill', d => `url(#gradient-${d.data.year}-${d[0]})`)
-            .style('opacity', 0.9)
-            .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
-            .on('mouseover', function(event, d) {
-                d3.select(this)
-                    .transition()
-                    .duration(200)
-                    .style('opacity', 1)
-                    .style('filter', 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))');
-            })
-            .on('mouseout', function(event, d) {
-                d3.select(this)
-                    .transition()
-                    .duration(200)
-                    .style('opacity', 0.9)
-                    .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
-            });
+            .attr('height', yBand.bandwidth())
+            .attr('rx', 4)
+            .attr('ry', 4)
+            .attr('fill', d => globalColorScale(d.measure) as string)
+            .style('opacity', 0.95)
+            .on('mouseover', function() { d3.select(this).style('opacity', 1); })
+            .on('mouseout', function() { d3.select(this).style('opacity', 0.95); });
 
-        // Add legend
-        const legendOffset = isSmallScreen ? 15 : 20;
-        const legend = svg.append('g')
-            .attr('transform', `translate(${width + margin.left + legendOffset}, ${margin.top})`);
+        // Grid lines: horizontal by policy row, vertical by year
+        const grid = g.append('g').attr('class','grid');
+        grid.selectAll('.hline')
+            .data(sortedPolicyTypes)
+            .enter().append('line')
+            .attr('class','hline')
+            .attr('x1', 0)
+            .attr('x2', width)
+            .attr('y1', d => (yBand(d) || 0) + yBand.bandwidth())
+            .attr('y2', d => (yBand(d) || 0) + yBand.bandwidth())
+            .style('stroke', '#e2e8f0')
+            .style('stroke-dasharray', '2,2')
+            .style('opacity', 0.2);
+        grid.selectAll('.vline')
+            .data(sortedYears)
+            .enter().append('line')
+            .attr('class','vline')
+            .attr('y1', 0)
+            .attr('y2', height)
+            .attr('x1', d => (xScale(String(d)) || 0) + xScale.bandwidth())
+            .attr('x2', d => (xScale(String(d)) || 0) + xScale.bandwidth())
+            .style('stroke', '#e2e8f0')
+            .style('stroke-dasharray', '2,2')
+            .style('opacity', 0.08);
 
-        const legendSpacing = isSmallScreen ? 20 : 25;
-        const legendBoxSize = isSmallScreen ? 14 : 18;
-        const legendFontSize = isSmallScreen ? '11px' : '14px';
-        const legendTextOffset = isSmallScreen ? 18 : 24;
-        const legendTextY = isSmallScreen ? 11 : 14;
-
-        Array.from(allPolicyTypes).forEach((measure, i) => {
-            const legendItem = legend.append('g')
-                .attr('transform', `translate(0, ${i * legendSpacing})`)
-                .style('cursor', 'pointer')
-                .style('opacity', 0);
-
-            // Modern pill-shaped background
-            legendItem.append('rect')
-                .attr('x', -5)
-                .attr('y', -2)
-                .attr('width', 120)
-                .attr('height', 20)
-                .attr('rx', 10)
-                .attr('ry', 10)
-                .attr('fill', 'rgba(255, 255, 255, 0.8)')
-                .style('filter', 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))')
-                .on('mouseover', function() {
-                    d3.select(this)
-                        .transition()
-                        .duration(200)
-                        .attr('fill', 'rgba(255, 255, 255, 1)')
-                        .style('filter', 'drop-shadow(0 2px 6px rgba(0,0,0,0.15))');
-                })
-                .on('mouseout', function() {
-                    d3.select(this)
-                        .transition()
-                        .duration(200)
-                        .attr('fill', 'rgba(255, 255, 255, 0.8)')
-                        .style('filter', 'drop-shadow(0 1px 3px rgba(0,0,0,0.1))');
-                });
-
-            // Color indicator circle
-            legendItem.append('circle')
-                .attr('cx', 6)
-                .attr('cy', 8)
-                .attr('r', 5)
-                .attr('fill', globalColorScale(measure as string) as string);
-
-            // Text label
-            legendItem.append('text')
-                .attr('x', 18)
-                .attr('y', 12)
-                .attr('font-size', legendFontSize)
-                .attr('font-weight', '500')
-                .attr('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
-                .attr('fill', '#374151')
-                .text(measure as string);
-
-            // Entrance animation
-            legendItem
-                .transition()
-                .duration(600)
-                .delay(1200 + i * 100)
-                .style('opacity', 1);
-        });
+        // No legend needed; y-axis labels identify policy rows
 
         // Add axis labels
         const axisLabelFontSize = isSmallScreen ? '12px' : '16px';
         const axisLabelBottomOffset = isSmallScreen ? 15 : 20;
         
-        g.append('text')
-            .attr('transform', 'rotate(-90)')
-            .attr('y', 0 - margin.left)
-            .attr('x', 0 - (height / 2))
-            .attr('dy', '1em')
-            .style('text-anchor', 'middle')
-            .style('font-size', axisLabelFontSize)
-            .style('font-weight', 'bold')
-            .text('Policy Types');
+        // Removed vertical y-axis label to declutter the chart
 
         g.append('text')
             .attr('transform', `translate(${width / 2}, ${height + margin.bottom - axisLabelBottomOffset})`)
@@ -597,13 +502,30 @@ svg.call(zoom as any);
 const countryCode2to3 = Object.fromEntries(Object.entries(countryCodeMapping).map(([k, v]) => [v, k]));
 
 const policyDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRMpij3w_R0ZWyvWT8zBSi25VKx1X928VAfxc8FKBp6hanTbEkbgEs_V5XuR1koFRwtY3qvjh4ew_kk/pub?gid=1648232698&single=true&output=csv';
-const targetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTrnNiKOv8WUyhF14AzhoblMqyLsqEXgSbKHMO0d8O7X6_eIzkJwS-lzjtXGL277A/pub?gid=2106460736&single=true&output=csv';
+const targetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZKEDLZNIvWdVYvdT-Re-GKVf_cRG2TfdVOxViBloLyHa5bbLukwBy19n1aNw3O3S_SPACFLWpTMn-/pub?gid=4146846&single=true&output=csv';
 
 const baseUrl = (import.meta as any).env.BASE_URL || '/';
 
 // Global variables to store all data
 let currentMapType = 'policies';
-let currentTargetType = 'Electricity'; // Default target type
+ let currentTargetType = 'Electricity'; // Default target type
+ // Year-group filter for targets view (default to 'latest')
+ let currentTargetYearGroup: '2020' | '2030' | '2050' | 'latest' = 'latest';
+ // Filter mode: always use year-group filtering (no UI toggle)
+ let currentTargetFilterMode: 'all' | 'group' = 'group';
+ 
+ // Helper to map a target year to a year group
+ function getYearGroup(year: number): '2020' | '2030' | '2050' | null {
+     if (!Number.isFinite(year)) return null;
+     // Groups as described: 
+     // 2020: targets until 2020 plus 5 years => <= 2025
+     // 2030: 2025 to 2035 (inclusive overlap at boundaries)
+     // 2050: 2035 to 2050
+     if (year <= 2025) return '2020';
+     if (year >= 2025 && year <= 2035) return '2030';
+     if (year >= 2035 && year <= 2050) return '2050';
+     return null;
+ }
 let allData: any = {};
 
 // Flag to track if submenu has been initialized
@@ -617,6 +539,9 @@ function initializeTargetsSubmenu() {
     const submenuOptions = document.getElementById('submenuOptions');
     const submenu = document.getElementById('targetsSubmenu');
     const submenuClose = document.getElementById('submenuClose');
+    const yearGroupOptions = document.getElementById('yearGroupOptions');
+    const yearGroupWrapper = document.getElementById('yearGroupWrapper');
+    const filterModeOptions = document.getElementById('filterModeOptions');
     
     if (!submenuOptions || !submenu || !submenuClose) return;
     
@@ -628,6 +553,31 @@ function initializeTargetsSubmenu() {
     if (!submenuInitialized || submenuOptions.children.length !== targetTypes.length) {
         // Clear existing options
         submenuOptions.innerHTML = '';
+        
+        // Filter mode UI removed; always show year-group controls
+        if (yearGroupWrapper) yearGroupWrapper.classList.remove('hidden');
+        
+        // Initialize year-group options once
+        if (yearGroupOptions && yearGroupOptions.children.length === 0) {
+            const groups: Array<'2020' | '2030' | '2050' | 'latest'> = ['latest', '2020', '2030', '2050'];
+            groups.forEach(group => {
+                const btn = document.createElement('button');
+                btn.className = 'year-option';
+                btn.textContent = group === 'latest' ? 'Latest Target' : group;
+                if (group === currentTargetYearGroup) btn.classList.add('active');
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    currentTargetYearGroup = group;
+                    // Update active state
+                    yearGroupOptions.querySelectorAll('.year-option').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    // Refresh map
+                    if (updateMapFunction) updateMapFunction();
+                });
+                yearGroupOptions.appendChild(btn);
+            });
+        }
         
         // Create submenu options for each target type
         targetTypes.forEach((targetType: string) => {
@@ -1125,7 +1075,21 @@ Promise.all([
             }
             
             if (countryCode && currentTargetData[countryCode] && currentColorScale) {
-                const targetValue = currentTargetData[countryCode].targetValue;
+                const info = currentTargetData[countryCode];
+                const targetValue = info.targetValue;
+                if (currentTargetFilterMode === 'group') {
+                    // 'latest' mode: show latest announced target regardless of year group
+                    if (currentTargetYearGroup === 'latest') {
+                        return currentColorScale(targetValue);
+                    }
+                    // Year group filtering (2020, 2030, 2050)
+                    const group = getYearGroup(Number(info.targetYear));
+                    if (group && group === currentTargetYearGroup) {
+                        return currentColorScale(targetValue);
+                    }
+                    return '#eee';
+                }
+                // Fallback: show latest announced target
                 return currentColorScale(targetValue);
             } else {
                 return '#ccc';
@@ -1271,11 +1235,19 @@ Promise.all([
             modalTitle.textContent = `${countryName} — Dashboard`;
         }
 
+        // Helper to format labels: Title Case, with specific abbreviations fully uppercased
+        const formatPolicyLabel = (s: string) => {
+            const lower = s.toLowerCase();
+            const upperAbbr = new Set(['fit', 'tgc', 'pv']);
+            if (upperAbbr.has(lower)) return lower.toUpperCase();
+            return lower.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        };
+
         // Layout container: two panels side-by-side (stack on narrow screens)
         modalContent.innerHTML = `
             <div id="dashboard-top" style="display:flex; gap:16px; width:100%; height:100%; flex-direction:row;">
-                <div id="dashboard-pie" style="flex:1; min-height:300px; background:rgba(255,255,255,0.6); border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);"></div>
-                <div id="dashboard-timeseries" style="flex:1; min-height:300px; background:rgba(255,255,255,0.6); border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);"></div>
+                <div id="dashboard-pie" style="flex:1; min-height:300px; background:#f8fafc; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);"></div>
+                <div id="dashboard-timeseries" style="flex:1; min-height:300px; background:#f8fafc; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);"></div>
             </div>
         `;
         // Open the modal before measuring sizes to ensure containers have dimensions
@@ -1305,6 +1277,17 @@ Promise.all([
                     .attr('height', rect.height)
                     .style('filter', 'drop-shadow(0 4px 8px rgba(0,0,0,0.06))');
                 const gPie = svg.append('g').attr('transform', `translate(${rect.width / 2}, ${rect.height / 2})`);
+
+                // Chart title
+                svg.append('text')
+                    .attr('x', rect.width / 2)
+                    .attr('y', 18)
+                    .style('text-anchor', 'middle')
+                    .style('font-size', '14px')
+                    .style('font-weight', '600')
+                    .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
+                    .style('fill', '#334155')
+                    .text('Technology Support');
 
                 const radius = Math.max(60, Math.min(rect.width, rect.height) * 0.35);
                 const arc = d3.arc<any>().outerRadius(radius).innerRadius(radius * 0.45).cornerRadius(8);
@@ -1369,19 +1352,15 @@ Promise.all([
                         .style('font-weight', '500')
                         .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
                         .style('fill', '#334155')
-                        .text(`${d.type}`);
+                        .text(formatPolicyLabel(String(d.type)));
                 });
             }
 
-            // Time series chart: stacked policy presence by measure
+            // Time series chart: row-per-policy type (non-stacked)
             const tsContainer = document.getElementById('dashboard-timeseries');
             const countryTime = timeSeriesData[countryCode3];
             if (tsContainer && countryTime) {
                 const allYears = Object.keys(countryTime).map(Number).sort();
-                const measures = new Set<string>();
-                Object.entries(countryTime).forEach(([year, yearData]) => {
-                    Object.keys(yearData as { [key: string]: number }).forEach(m => measures.add(m));
-                });
                 const yearly: { [year: number]: { [measure: string]: number } } = {};
                 const types = new Set<string>();
                 allYears.forEach(y => {
@@ -1398,45 +1377,58 @@ Promise.all([
                 const startY = yearsWith[0];
                 const endY = yearsWith[yearsWith.length - 1];
                 const years = allYears.filter(y => y >= startY && y <= endY);
-                const stackedData = years.map(y => {
-                    const yd: any = { year: y };
-                    Array.from(types).forEach(m => { yd[m] = yearly[y][m] || 0; });
-                    return yd;
-                });
 
                 const rect = tsContainer.getBoundingClientRect();
-                const margin = { top: 24, right: 160, bottom: 40, left: 56 };
+                const margin = { top: 24, right: 60, bottom: 80, left: 120 };
                 const width = rect.width - margin.left - margin.right;
                 const height = rect.height - margin.top - margin.bottom;
                 const svg = d3.select(tsContainer).append('svg')
                     .attr('width', rect.width)
                     .attr('height', rect.height)
-                    .style('background', 'linear-gradient(180deg, rgba(248,250,252,0.9), rgba(241,245,249,0.9))')
                     .style('border-radius', '12px')
                     .style('filter', 'drop-shadow(0 2px 8px rgba(0,0,0,0.06))');
 
                 const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
-                const x = d3.scaleBand().domain(years.map(String)).range([0, width]).padding(0.15);
-                const maxH = Math.max(...years.map(y => Array.from(types).reduce((s, m) => s + (yearly[y][m] || 0), 0)));
-                const y = d3.scaleLinear().domain([0, maxH]).range([height, 0]);
-                const stack = d3.stack().keys(Array.from(types));
-                const series = stack(stackedData);
+                // Chart title for context (match pie chart styling)
+                svg.append('text')
+                    .attr('x', margin.left + width / 2)
+                    .attr('y', Math.max(16, margin.top - 6))
+                    .style('text-anchor', 'middle')
+                    .style('font-size', '14px')
+                    .style('font-weight', '600')
+                    .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
+                    .style('fill', '#334155')
+                    .text('Policy Timeline by Type');
+                const x = d3.scaleBand().domain(years.map(String)).range([0, width]).padding(0.06);
+                // Compute frequency of each policy type across selected years
+                const policyFreq: Record<string, number> = {};
+                Array.from(types).forEach(t => { policyFreq[t] = 0; });
+                years.forEach(y => {
+                    Array.from(types).forEach(t => { if (yearly[y][t]) policyFreq[t] += 1; });
+                });
+                // Sort types by ascending frequency so the most frequent ends up at the bottom
+                const sortedPolicyTypes = Array.from(types).sort((a, b) => policyFreq[a] - policyFreq[b]);
+                const yBand = d3.scaleBand().domain(sortedPolicyTypes).range([0, height]).padding(0.1);
+
+                // (Removed) background row bands to keep bar chart clean
 
                 // Grid
-                g.append('g').selectAll('.grid-line').data(y.ticks(4)).enter().append('line')
-                    .attr('x1', 0).attr('x2', width).attr('y1', d => y(d)).attr('y2', d => y(d))
-                    .style('stroke', '#e2e8f0').style('stroke-dasharray', '2,2').style('opacity', 0.3);
+                const grid = g.append('g');
+                grid.selectAll('.hline').data(sortedPolicyTypes).enter().append('line')
+                    .attr('class', 'hline')
+                    .attr('x1', 0).attr('x2', width)
+                    .attr('y1', d => (yBand(d) || 0) + yBand.bandwidth()).attr('y2', d => (yBand(d) || 0) + yBand.bandwidth())
+                    .style('stroke', '#e2e8f0').style('stroke-dasharray', '2,2').style('opacity', 0.2);
+                grid.selectAll('.vline').data(years).enter().append('line')
+                    .attr('class', 'vline')
+                    .attr('y1', 0).attr('y2', height)
+                    .attr('x1', d => (x(String(d)) || 0) + x.bandwidth()).attr('x2', d => (x(String(d)) || 0) + x.bandwidth())
+                    .style('stroke', '#e2e8f0').style('stroke-dasharray', '2,2').style('opacity', 0.08);
 
-                // Gradients for bars
-                const defs = svg.append('defs');
-                series.forEach(s => {
-                    s.forEach(d => {
-                        const base = getMeasureColor((s as any).key) || '#8fb9e0';
-                        const id = `dash-ts-${d.data.year}-${String((s as any).key).replace(/[^a-zA-Z0-9_-]/g, '-')}`;
-                        const lg = defs.append('linearGradient').attr('id', id).attr('x1','0%').attr('y1','0%').attr('x2','0%').attr('y2','100%');
-                        lg.append('stop').attr('offset','0%').attr('stop-color', base).attr('stop-opacity', 1);
-                        lg.append('stop').attr('offset','100%').attr('stop-color', d3.color(base)?.darker(0.3)?.toString() || '#1e40af').attr('stop-opacity', 1);
-                    });
+                // Cells data: one per active measure-year
+                const cells: { year: number; measure: string }[] = [];
+                years.forEach(y => {
+                    sortedPolicyTypes.forEach(m => { if (yearly[y][m]) cells.push({ year: y, measure: m }); });
                 });
 
                 // Policy detail popup
@@ -1501,26 +1493,22 @@ Promise.all([
                     parent.appendChild(box);
                 }
 
-                // Bars
-                const stacks = g.selectAll('.stack').data(series).enter().append('g').attr('class','stack');
-                stacks.selectAll('rect')
-                    .data(d => d)
-                    .enter().append('rect')
-                    .attr('x', d => x(String((d as any).data.year)) || 0)
-                    .attr('y', d => y(d[1]))
-                    .attr('height', d => y(d[0]) - y(d[1]))
+                // Cells (non-stacked)
+                g.selectAll('.policy-cell')
+                    .data(cells)
+                    .enter()
+                    .append('rect')
+                    .attr('class', 'policy-cell')
+                    .attr('x', d => x(String(d.year)) || 0)
+                    .attr('y', d => yBand(d.measure) || 0)
                     .attr('width', x.bandwidth())
+                    .attr('height', yBand.bandwidth())
                     .attr('rx', 3).attr('ry', 3)
-                    .attr('fill', function(d: any) {
-                        const key = (d3.select(this.parentNode as Element).datum() as any).key;
-                        const sanitized = String(key).replace(/[^a-zA-Z0-9_-]/g, '-');
-                        return `url(#dash-ts-${d.data.year}-${sanitized})`;
-                    })
-                    .style('opacity', 0.9)
+                    .attr('fill', d => getMeasureColor(d.measure))
+                    .style('opacity', 0.95)
                     .on('click', function(event, d: any) {
-                        const measure = (d3.select(this.parentNode as Element).datum() as any).key as string;
-                        const year = Number(d.data.year);
-                        // Show policies introduced on or before selected year and still active at that year
+                        const measure = d.measure as string;
+                        const year = Number(d.year);
                         const rows = policyCsv.filter((row: any) => {
                             const cName = row.country;
                             const m = row.measure || 'Unknown';
@@ -1529,7 +1517,6 @@ Promise.all([
                             const code3 = countryNameMap[cName || ''];
                             if (code3 !== countryCode3 || m !== measure) return false;
                             if (!Number.isFinite(introducedYear) || introducedYear > year) return false;
-                            // If there is any deactivation between introduction and selected year, exclude
                             const events = (eventsByCountryMeasure[countryCode3] && eventsByCountryMeasure[countryCode3][measure]) || [];
                             const deactivatedBeforeOrInSelected = events.some(e => e.type === 'deactivate' && e.year > introducedYear && e.year <= year);
                             return !deactivatedBeforeOrInSelected;
@@ -1537,65 +1524,39 @@ Promise.all([
                         showPolicyDetailPopup(measure, year, rows);
                     })
                     .on('mouseover', function() { d3.select(this).style('opacity', 1); })
-                    .on('mouseout', function() { d3.select(this).style('opacity', 0.9); });
+                    .on('mouseout', function() { d3.select(this).style('opacity', 0.95); });
 
                 // Axes
-                g.append('g').attr('transform', `translate(0, ${height})`).call(d3.axisBottom(x)).selectAll('text')
-                    .style('font-size', '12px').style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif').style('fill', '#475569');
-                g.append('g').call(d3.axisLeft(y).ticks(4)).selectAll('text')
-                    .style('font-size', '12px').style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif').style('fill', '#475569');
-
-                // Small legend for policy measures (top-right inside chart)
-                const legendKeys = series.map(s => (s as any).key);
-                const legendUnique = Array.from(new Set(legendKeys));
-                const legendItems = legendUnique.slice(0, 6);
-                const legendWidth = 130;
-                const legendItemH = 16;
-                const legendHeight = legendItems.length * legendItemH + 10;
-                const legendGroup = g.append('g')
-                    .attr('class','ts-legend')
-                    .attr('transform', `translate(${width - legendWidth - 8}, ${6})`);
-                legendGroup.append('rect')
-                    .attr('width', legendWidth)
-                    .attr('height', legendHeight)
-                    .attr('rx', 8)
-                    .attr('ry', 8)
-                    .style('fill', 'rgba(255,255,255,0.85)')
-                    .style('stroke', '#e5e7eb')
-                    .style('stroke-width', 1);
-                legendItems.forEach((k, i) => {
-                    const row = legendGroup.append('g').attr('transform', `translate(8, ${8 + i * legendItemH})`);
-                    row.append('rect')
-                        .attr('x', 0)
-                        .attr('y', 2)
-                        .attr('width', 10)
-                        .attr('height', 10)
-                        .attr('rx', 2)
-                        .attr('ry', 2)
-                        .style('fill', getMeasureColor(k))
-                        .style('stroke', 'rgba(255,255,255,0.9)')
-                        .style('stroke-width', 0.8);
-                    row.append('text')
-                        .attr('x', 16)
-                        .attr('y', 12)
-                        .text(String(k).length > 18 ? `${String(k).slice(0, 16)}…` : String(k))
-                        .style('font-size', '11px')
-                        .style('fill', '#334155')
-                        .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif');
-                });
-
-                // Axis labels
-                g.append('text')
-                    .attr('transform', 'rotate(-90)')
-                    .attr('y', 0 - margin.left)
-                    .attr('x', 0 - (height / 2))
-                    .attr('dy', '1em')
-                    .style('text-anchor', 'middle')
-                    .style('font-size', '12px')
-                    .style('font-weight', '600')
+                const xDomainDash = x.domain();
+                const stepDash = xDomainDash.length > 24 ? 3 : (xDomainDash.length > 14 ? 2 : 1);
+                const xTicksDash = xDomainDash.filter((_, i) => i % stepDash === 0);
+                const xAxisDash = g.append('g')
+                    .attr('transform', `translate(0, ${height})`)
+                    .call(d3.axisBottom(x).tickValues(xTicksDash).tickSize(0));
+                const xLabelSize = width <= 420 ? '9px' : (width <= 560 ? '10px' : '12px');
+                xAxisDash.selectAll('text')
+                    .style('font-size', xLabelSize)
                     .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
                     .style('fill', '#475569')
-                    .text('Policy Types');
+                    .style('text-anchor', 'middle')
+                    .attr('dx', '0')
+                    .attr('dy', '0');
+                xAxisDash.select('.domain')
+                    .style('stroke', '#e2e8f0')
+                    .style('stroke-width', 1);
+                const yAxisDash = g.append('g')
+                    .call(d3.axisLeft(yBand).tickSize(0).tickFormat((d: any) => formatPolicyLabel(String(d))));
+                yAxisDash.selectAll('text')
+                    .style('font-size', '12px')
+                    .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
+                    .style('fill', '#475569');
+                yAxisDash.select('.domain')
+                    .style('stroke', '#e2e8f0')
+                    .style('stroke-width', 1);
+
+                // Legend removed: y-axis labels suffice for identifying policy types
+
+                // Axis labels (y-label removed for clarity)
                 g.append('text')
                     .attr('transform', `translate(${width / 2}, ${height + margin.bottom - 5})`)
                     .style('text-anchor', 'middle')
@@ -1660,17 +1621,25 @@ Promise.all([
         const latestActiveYear = yearsWithActivity[yearsWithActivity.length - 1];
         const years = allYears.filter(y => y >= earliestActiveYear && y <= latestActiveYear);
 
-        // Prepare stacked data
-        const stackedData = years.map(year => {
-            const yearData: any = { year };
-            Array.from(allPolicyTypes).forEach(measure => {
-                yearData[measure] = yearlyData[year][measure] || 0;
+        // Compute frequency per policy type across the active window
+        const policyFreq: Record<string, number> = {};
+        Array.from(allPolicyTypes).forEach(t => { policyFreq[t] = 0; });
+        years.forEach(year => {
+            Array.from(allPolicyTypes).forEach(t => { if (yearlyData[year][t]) policyFreq[t] += 1; });
+        });
+        // Sort ascending by frequency so the most frequent appears at the bottom row
+        const sortedPolicyTypes = Array.from(allPolicyTypes).sort((a, b) => policyFreq[a] - policyFreq[b]);
+
+        // Build presence cells per year-policy for non-stacked rows
+        const cells: { year: number; measure: string }[] = [];
+        years.forEach(year => {
+            sortedPolicyTypes.forEach(measure => {
+                if (yearlyData[year][measure]) cells.push({ year, measure });
             });
-            return yearData;
         });
 
         // Chart dimensions
-        const margin = { top: 20, right: 70, bottom: 35, left: 45 };
+        const margin = { top: 20, right: 70, bottom: 35, left: 100 };
         const chartWidth = 300 - margin.left - margin.right;
         const chartHeight = 160 - margin.top - margin.bottom;
 
@@ -1714,59 +1683,54 @@ Promise.all([
         const xScale = d3.scaleBand()
             .domain(years.map(String))
             .range([0, chartWidth])
-            .padding(0.15);
+            .padding(0.06);
 
-        const maxStackHeight = Math.max(...years.map(year => 
-            Array.from(allPolicyTypes).reduce((sum, measure) => 
-                sum + (yearlyData[year][measure] || 0), 0)
-        ));
-
-        const yScale = d3.scaleLinear()
-            .domain([0, maxStackHeight])
-            .range([chartHeight, 0]);
-
-        // Create stack generator
-        const stack = d3.stack()
-            .keys(Array.from(allPolicyTypes));
-
-        const stackedSeries = stack(stackedData);
+        const yBand = d3.scaleBand()
+            .domain(sortedPolicyTypes)
+            .range([0, chartHeight])
+            .padding(0.1);
 
         // Add modern grid lines
         const gridLines = g.append('g')
             .attr('class', 'grid-lines')
-            .style('opacity', 0.3);
+            .style('opacity', 0.2);
 
         // Horizontal grid lines
         gridLines.selectAll('.grid-line-horizontal')
-            .data(yScale.ticks(5))
+            .data(sortedPolicyTypes)
             .enter().append('line')
             .attr('class', 'grid-line-horizontal')
             .attr('x1', 0)
             .attr('x2', chartWidth)
-            .attr('y1', d => yScale(d))
-            .attr('y2', d => yScale(d))
+            .attr('y1', d => (yBand(d) || 0) + yBand.bandwidth())
+            .attr('y2', d => (yBand(d) || 0) + yBand.bandwidth())
             .style('stroke', '#e2e8f0')
             .style('stroke-width', 1)
             .style('stroke-dasharray', '2,2');
 
-        // Add axes with modern styling
+        // Add axes with modern styling and adaptive tick density
+        const xDomain = xScale.domain();
+        const step = xDomain.length > 24 ? 3 : (xDomain.length > 14 ? 2 : 1);
+        const xTicks = xDomain.filter((_, i) => i % step === 0);
         const xAxis = g.append('g')
             .attr('transform', `translate(0,${chartHeight})`)
-            .call(d3.axisBottom(xScale).tickSize(0))
+            .call(d3.axisBottom(xScale).tickValues(xTicks).tickSize(0))
             .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif');
 
         xAxis.selectAll('text')
             .style('font-size', '11px')
             .style('font-weight', '500')
             .style('fill', '#64748b')
-            .attr('dy', '1.2em');
+            .style('text-anchor', 'middle')
+            .attr('dx', '0')
+            .attr('dy', '0');
 
         xAxis.select('.domain')
             .style('stroke', '#e2e8f0')
-            .style('stroke-width', 2);
+            .style('stroke-width', 1);
 
         const yAxis = g.append('g')
-            .call(d3.axisLeft(yScale).tickFormat(d3.format('d')).ticks(Math.min(maxStackHeight, 5)).tickSize(0))
+            .call(d3.axisLeft(yBand).tickSize(0))
             .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif');
 
         yAxis.selectAll('text')
@@ -1777,64 +1741,29 @@ Promise.all([
 
         yAxis.select('.domain')
             .style('stroke', '#e2e8f0')
-            .style('stroke-width', 2);
+            .style('stroke-width', 1);
 
-        // Add stacked bars with modern styling and animations
-        const barGroups = g.selectAll('.stack')
-            .data(stackedSeries)
-            .enter().append('g')
-            .attr('class', 'stack')
-            .attr('fill', d => `url(#gradient-${d.key.replace(/\s+/g, '-')})`);
-
-        // Create gradients for each policy type
-        const defs = svg.append('defs');
-        stackedSeries.forEach(series => {
-            const gradient = defs.append('linearGradient')
-                .attr('id', `gradient-${series.key.replace(/\s+/g, '-')}`)
-                .attr('x1', '0%')
-                .attr('y1', '0%')
-                .attr('x2', '0%')
-                .attr('y2', '100%');
-
-            const baseColor = d3.color(globalColorScale(series.key as string) as string);
-            const lighterColor = baseColor?.brighter(0.3);
-            
-            gradient.append('stop')
-                .attr('offset', '0%')
-                .attr('stop-color', lighterColor?.toString() || baseColor?.toString() || '#3b82f6')
-                .attr('stop-opacity', 0.9);
-            
-            gradient.append('stop')
-                .attr('offset', '100%')
-                .attr('stop-color', baseColor?.toString() || '#3b82f6')
-                .attr('stop-opacity', 1);
-        });
-
-        const bars = barGroups.selectAll('rect')
-            .data(d => d)
+        // Draw cells
+        const cellsSel = g.selectAll('.policy-cell')
+            .data(cells)
             .enter().append('rect')
-            .attr('x', d => xScale(String((d.data as any).year))!)
-            .attr('y', chartHeight)
-            .attr('height', 0)
+            .attr('class', 'policy-cell')
+            .attr('x', d => xScale(String(d.year))!)
+            .attr('y', d => yBand(d.measure) || 0)
             .attr('width', xScale.bandwidth())
+            .attr('height', yBand.bandwidth())
             .attr('rx', 3)
             .attr('ry', 3)
+            .attr('fill', d => globalColorScale(d.measure as string) as string)
+            .style('fill-opacity', 0.88)
             .style('stroke', 'rgba(255, 255, 255, 0.8)')
             .style('stroke-width', 1)
             .style('transition', 'all 0.3s ease');
 
-        // Animate bars
-        bars.transition()
-            .duration(800)
-            .delay((d, i) => i * 50)
-            .ease(d3.easeBackOut.overshoot(1.2))
-            .attr('y', d => yScale(d[1]))
-            .attr('height', d => yScale(d[0]) - yScale(d[1]));
-
-        // Add hover effects to bars
-        bars.on('mouseenter', function(event, d) {
+        // Hover effects
+        cellsSel.on('mouseenter', function() {
                 d3.select(this)
-                    .style('filter', 'brightness(1.1)')
+                    .style('filter', 'brightness(1.05)')
                     .style('stroke-width', 2);
             })
             .on('mouseleave', function() {
@@ -1843,92 +1772,10 @@ Promise.all([
                     .style('stroke-width', 1);
             });
 
-        // Add modern legend with pill-shaped items
-        const legend = svg.append('g')
-            .attr('transform', `translate(${chartWidth + margin.left + 15}, ${margin.top + 10})`);
-
-        const legendItems = Array.from(allPolicyTypes).map((measure, i) => {
-            const legendItem = legend.append('g')
-                .attr('transform', `translate(0, ${i * 20})`)
-                .style('cursor', 'pointer')
-                .style('opacity', 0);
-
-            // Modern pill-shaped background
-            const bbox = { width: 50, height: 16 }; // Approximate size
-            legendItem.append('rect')
-                .attr('x', -4)
-                .attr('y', -2)
-                .attr('width', bbox.width)
-                .attr('height', bbox.height)
-                .attr('rx', 8)
-                .attr('ry', 8)
-                .style('fill', 'rgba(255, 255, 255, 0.8)')
-                .style('stroke', 'rgba(226, 232, 240, 0.8)')
-                .style('stroke-width', 1)
-                .style('transition', 'all 0.2s ease');
-
-            // Color indicator circle
-            legendItem.append('circle')
-                .attr('cx', 6)
-                .attr('cy', 6)
-                .attr('r', 4)
-                .attr('fill', globalColorScale(measure as string) as string)
-                .style('stroke', 'rgba(255, 255, 255, 0.9)')
-                .style('stroke-width', 1.5);
-
-            // Text label
-            legendItem.append('text')
-                .attr('x', 16)
-                .attr('y', 6)
-                .attr('dy', '0.35em')
-                .style('font-size', '9px')
-                .style('font-weight', '500')
-                .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
-                .style('fill', '#475569')
-                .text(measure as string);
-
-            // Hover effects
-            legendItem.on('mouseenter', function() {
-                d3.select(this).select('rect')
-                    .style('fill', 'rgba(255, 255, 255, 1)')
-                    .style('stroke', globalColorScale(measure as string) as string)
-                    .style('stroke-width', 2);
-            })
-            .on('mouseleave', function() {
-                d3.select(this).select('rect')
-                    .style('fill', 'rgba(255, 255, 255, 0.8)')
-                    .style('stroke', 'rgba(226, 232, 240, 0.8)')
-                    .style('stroke-width', 1);
-            });
-
-            return legendItem;
-        });
-
-        // Animate legend items
-        legendItems.forEach((item, i) => {
-            item.transition()
-                .duration(400)
-                .delay(1000 + i * 100)
-                .style('opacity', 1);
-        });
+        // Legend removed: y-axis labels already show policy names
 
         // Add modern axis labels
-        g.append('text')
-            .attr('transform', 'rotate(-90)')
-            .attr('y', 0 - margin.left)
-            .attr('x', 0 - (chartHeight / 2))
-            .attr('dy', '1em')
-            .style('text-anchor', 'middle')
-            .style('font-size', '12px')
-            .style('font-weight', '600')
-            .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
-            .style('fill', '#475569')
-            .style('opacity', 0)
-            .text('Policy Types')
-            .transition()
-            .duration(600)
-            .delay(1200)
-            .style('opacity', 1);
+        // Removed vertical y-axis label to declutter the small chart
 
         g.append('text')
             .attr('transform', `translate(${chartWidth / 2}, ${chartHeight + margin.bottom - 5})`)
@@ -2139,7 +1986,10 @@ Promise.all([
         const height = Math.max(40, Math.min(72, Math.round(width * 0.17))); // keep aspect ratio similar to original
         toggle.style.width = `${width}px`;
         toggle.style.height = `${height}px`;
-        if (submenu) submenu.style.width = `${width}px`;
+        if (submenu) {
+            const submenuWidth = Math.max(380, width);
+            submenu.style.width = `${submenuWidth}px`;
+        }
     }
     // Size now and on resize
     requestAnimationFrame(adaptToggleSize);
