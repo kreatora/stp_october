@@ -1056,7 +1056,7 @@ Promise.all([
     // Function to get country color based on current map type
     function getCountryColor(countryCode: string): string {
         if (currentMapType === 'policies') {
-            return countryCode && policyData[countryCode] ? policyColorScale(policyData[countryCode]) : '#ccc';
+            return countryCode && policyData[countryCode] ? policyColorScale(policyData[countryCode]) : '#b0b0b0';
         } else if (currentMapType === 'targets') {
             // Use current target type data with the appropriate color scale
             const currentTargetData = allData.targets.dataByType[currentTargetType] || {};
@@ -1087,18 +1087,18 @@ Promise.all([
                     if (group && group === currentTargetYearGroup) {
                         return currentColorScale(targetValue);
                     }
-                    return '#eee';
+                    return '#d4d4d4';
                 }
                 // Fallback: show latest announced target
                 return currentColorScale(targetValue);
             } else {
-                return '#ccc';
+                return '#b0b0b0';
             }
         } else if (currentMapType === 'ev') {
             // Placeholder for EV data - will be implemented later
-            return '#ccc';
+            return '#b0b0b0';
         }
-        return '#ccc';
+        return '#b0b0b0';
     }
 
     // Function to get tooltip content based on current map type
