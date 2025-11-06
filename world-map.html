@@ -68,9 +68,9 @@
         .toggle-switch {
             position: relative;
             display: inline-block;
-            /* Width/height will be adapted via JS to ~8% of map width */
-            width: 280px;
-            height: 48px;
+            /* Width/height will be adapted via JS to ~10% of map width for 4 options */
+            width: 440px;
+            height: 52px;
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(241, 245, 249, 0.98) 100%);
             border-radius: 24px;
             border: 2px solid rgba(148, 163, 184, 0.95);
@@ -90,8 +90,8 @@
             position: absolute;
             top: 2px;
             left: 2px;
-            /* Slider width tracks one third of the toggle width */
-            width: calc(33.33% - 4px);
+            /* Slider width tracks one quarter of the toggle width for 4 options */
+            width: calc(25% - 4px);
             height: calc(100% - 8px);
             background: linear-gradient(135deg, rgb(30, 41, 59) 0%, rgb(51, 65, 85) 100%);
             border-radius: 20px;
@@ -112,16 +112,17 @@
             top: 50%;
             transform: translateY(-50%);
             font-weight: 700;
-            font-size: 12px;
-            letter-spacing: 0.6px;
+            font-size: 10px;
+            letter-spacing: 0.3px;
             transition: all 0.3s ease;
             cursor: pointer;
             user-select: none;
             z-index: 10;
-            padding: 8px 12px;
-            border-radius: 16px;
-            min-width: 65px;
+            padding: 6px 8px;
+            border-radius: 12px;
+            min-width: 60px;
             text-align: center;
+            white-space: nowrap;
         }
         
         .toggle-option:hover {
@@ -129,20 +130,26 @@
             transform: translate(-50%, -50%) scale(1.05);
         }
         
-        .toggle-option.left {
-            left: 16.67%;
+        .toggle-option.first {
+            left: 12.5%;
             transform: translate(-50%, -50%);
             color: white;
         }
         
-        .toggle-option.center {
-            left: 50%;
+        .toggle-option.second {
+            left: 37.5%;
             transform: translate(-50%, -50%);
             color: rgb(30, 41, 59);
         }
         
-        .toggle-option.right {
-            left: 83.33%;
+        .toggle-option.third {
+            left: 62.5%;
+            transform: translate(-50%, -50%);
+            color: rgb(30, 41, 59);
+        }
+        
+        .toggle-option.fourth {
+            left: 87.5%;
             transform: translate(-50%, -50%);
             color: rgb(30, 41, 59);
         }
@@ -152,55 +159,62 @@
             left: 2px;
         }
         
-        .toggle-switch[data-active="policies"] .toggle-option.left {
+        .toggle-switch[data-active="policies"] .toggle-option.first {
             color: white;
             opacity: 1;
         }
         
-        .toggle-switch[data-active="policies"] .toggle-option.center {
-            color: rgb(100, 116, 139);
-            opacity: 0.7;
-        }
-        
-        .toggle-switch[data-active="policies"] .toggle-option.right {
+        .toggle-switch[data-active="policies"] .toggle-option.second,
+        .toggle-switch[data-active="policies"] .toggle-option.third,
+        .toggle-switch[data-active="policies"] .toggle-option.fourth {
             color: rgb(100, 116, 139);
             opacity: 0.7;
         }
         
         .toggle-switch[data-active="ev"] .toggle-slider {
-            left: calc(33.33% + 2px);
+            left: calc(25% + 2px);
         }
         
-        .toggle-switch[data-active="ev"] .toggle-option.left {
+        .toggle-switch[data-active="ev"] .toggle-option.first,
+        .toggle-switch[data-active="ev"] .toggle-option.third,
+        .toggle-switch[data-active="ev"] .toggle-option.fourth {
             color: rgb(100, 116, 139);
             opacity: 0.7;
         }
         
-        .toggle-switch[data-active="ev"] .toggle-option.center {
+        .toggle-switch[data-active="ev"] .toggle-option.second {
             color: white;
             opacity: 1;
         }
         
-        .toggle-switch[data-active="ev"] .toggle-option.right {
-            color: rgb(100, 116, 139);
-            opacity: 0.7;
-        }
-        
         .toggle-switch[data-active="targets"] .toggle-slider {
-            left: calc(66.66% + 2px);
+            left: calc(50% + 2px);
         }
         
-        .toggle-switch[data-active="targets"] .toggle-option.left {
+        .toggle-switch[data-active="targets"] .toggle-option.first,
+        .toggle-switch[data-active="targets"] .toggle-option.second,
+        .toggle-switch[data-active="targets"] .toggle-option.fourth {
             color: rgb(100, 116, 139);
             opacity: 0.7;
         }
         
-        .toggle-switch[data-active="targets"] .toggle-option.center {
+        .toggle-switch[data-active="targets"] .toggle-option.third {
+            color: white;
+            opacity: 1;
+        }
+        
+        .toggle-switch[data-active="climateTargets"] .toggle-slider {
+            left: calc(75% + 2px);
+        }
+        
+        .toggle-switch[data-active="climateTargets"] .toggle-option.first,
+        .toggle-switch[data-active="climateTargets"] .toggle-option.second,
+        .toggle-switch[data-active="climateTargets"] .toggle-option.third {
             color: rgb(100, 116, 139);
             opacity: 0.7;
         }
         
-        .toggle-switch[data-active="targets"] .toggle-option.right {
+        .toggle-switch[data-active="climateTargets"] .toggle-option.fourth {
             color: white;
             opacity: 1;
         }
@@ -353,6 +367,32 @@
             box-shadow: 0 3px 10px rgba(30, 41, 59, 0.4);
         }
         
+        /* Climate Targets Submenu Styles */
+        .climate-targets-submenu {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            width: 380px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.99) 0%, rgba(241, 245, 249, 0.99) 100%);
+            border: 2px solid rgba(148, 163, 184, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2), 0 6px 20px rgba(0,0,0,0.15);
+            backdrop-filter: blur(14px);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 21; /* Slightly above toggle, still below modal */
+            max-height: 420px;
+            overflow: hidden;
+        }
+        
+        .climate-targets-submenu.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+        }
+        
         .submenu-option {
             display: block;
             width: 100%;
@@ -496,6 +536,44 @@
             overflow: hidden;
             transition: max-height 0.2s ease-out;
         }
+        /* Help details styling */
+        .help-details {
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(246,248,250,0.95) 100%);
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            transition: box-shadow 0.2s ease, transform 0.15s ease;
+        }
+        .help-details:hover {
+            box-shadow: 0 10px 28px rgba(0,0,0,0.10);
+        }
+        .help-details[open] {
+            transform: translateY(-1px);
+        }
+        .help-summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgb(30, 41, 59);
+        }
+        .help-summary::-webkit-details-marker { display: none; }
+        .help-summary::before {
+            content: '';
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgb(71, 85, 105);
+            border-left: 0;
+            border-top: 0;
+            transform: rotate(45deg);
+            transition: transform 0.2s ease;
+        }
+        .help-details[open] .help-summary::before {
+            transform: rotate(225deg);
+        }
+        .help-list li {
+            margin-left: 0.25rem;
+        }
         #policy-list {
             display: flex;
             flex-direction: column;
@@ -540,6 +618,14 @@
         <section class="max-w-7xl mx-auto py-6 text-center">
             <h2 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline">Climate Policy Atlas</h2>
             
+            <!-- How to use: persistent helper (no background, smaller italic text) -->
+            <div class="mx-auto max-w-5xl mb-4">
+                <p class="text-left italic" style="font-size: 0.85rem; color: #334155;">
+                    Drag to pan and scroll or pinch to zoom. Click any country to open its dashboard (Mostly For Europe as yet); In the dashboard charts, click policy cells in the timeline to view policy 
+                    details.
+                </p>
+            </div>
+            
             <div class="bg-custom p-2 md:p-4 rounded-lg shadow-xl mx-auto max-w-7xl text-center relative">
                 <!-- Hidden radio buttons for compatibility -->
                     <label style="display: none;">
@@ -566,9 +652,10 @@
                         <div class="toggle-switch-container">
                             <div class="toggle-switch" data-active="policies" id="mapTypeToggle">
                                 <div class="toggle-slider"></div>
-                                <div class="toggle-option left">policies</div>
-                                <div class="toggle-option center">ev</div>
-                                <div class="toggle-option right">targets</div>
+                                <div class="toggle-option first">Policies</div>
+                                <div class="toggle-option second">EV</div>
+                                <div class="toggle-option third">RE Targets</div>
+                                <div class="toggle-option fourth">Climate Targets</div>
                             </div>
                             
                             <!-- Targets Submenu -->
@@ -583,6 +670,18 @@
                                 </div>
                                 <div class="submenu-options" id="submenuOptions">
                                     <!-- Target type options will be dynamically populated -->
+                                </div>
+                            </div>
+                            
+                            <!-- Climate Targets Submenu -->
+                            <div class="climate-targets-submenu" id="climateTargetsSubmenu">
+                                <div class="submenu-header">
+                                    <span class="submenu-title">Climate Targets</span>
+                                    <button class="submenu-close" id="climateSubmenuClose">&times;</button>
+                                </div>
+                                <div class="year-group-wrapper" id="climateYearGroupWrapper">
+                                    <div class="year-group-title">Targeted Year</div>
+                                    <div class="year-group-options" id="climateYearGroupOptions"></div>
                                 </div>
                             </div>
                         </div>

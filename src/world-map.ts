@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+import * as XLSX from 'xlsx';
 import { geoMercator, geoPath } from 'd3-geo';
 import polylabel from 'polylabel';
 
@@ -379,8 +380,23 @@ function createFullScreenTimeSeriesChart(timeSeriesChartData: any[], countryName
             .attr('ry', 4)
             .attr('fill', d => globalColorScale(d.measure) as string)
             .style('opacity', 0.95)
-            .on('mouseover', function() { d3.select(this).style('opacity', 1); })
-            .on('mouseout', function() { d3.select(this).style('opacity', 0.95); });
+            .style('cursor', 'pointer')
+            .style('stroke', 'rgba(255,255,255,0.6)')
+            .style('stroke-width', 1)
+            .on('mouseover', function() {
+                d3.select(this)
+                    .style('opacity', 1)
+                    .style('stroke', 'rgba(17, 24, 39, 0.5)')
+                    .style('stroke-width', 1.5)
+                    .style('filter', 'saturate(1.6) contrast(1.15)');
+            })
+            .on('mouseout', function() {
+                d3.select(this)
+                    .style('opacity', 0.95)
+                    .style('stroke', 'rgba(255,255,255,0.6)')
+                    .style('stroke-width', 1)
+                    .style('filter', 'none');
+            });
 
         // Grid lines: horizontal by policy row, vertical by year
         const grid = g.append('g').attr('class','grid');
@@ -503,16 +519,19 @@ const countryCode2to3 = Object.fromEntries(Object.entries(countryCodeMapping).ma
 
 const policyDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRMpij3w_R0ZWyvWT8zBSi25VKx1X928VAfxc8FKBp6hanTbEkbgEs_V5XuR1koFRwtY3qvjh4ew_kk/pub?gid=1648232698&single=true&output=csv';
 const targetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZKEDLZNIvWdVYvdT-Re-GKVf_cRG2TfdVOxViBloLyHa5bbLukwBy19n1aNw3O3S_SPACFLWpTMn-/pub?gid=4146846&single=true&output=csv';
+const climateTargetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZKEDLZNIvWdVYvdT-Re-GKVf_cRG2TfdVOxViBloLyHa5bbLukwBy19n1aNw3O3S_SPACFLWpTMn-/pub?gid=351569358&single=true&output=csv';
 
 const baseUrl = (import.meta as any).env.BASE_URL || '/';
 
 // Global variables to store all data
-let currentMapType = 'policies';
+let currentMapType: 'policies' | 'ev' | 'targets' | 'climateTargets' = 'policies';
  let currentTargetType = 'Electricity'; // Default target type
  // Year-group filter for targets view (default to 'latest')
  let currentTargetYearGroup: '2020' | '2030' | '2050' | 'latest' = 'latest';
  // Filter mode: always use year-group filtering (no UI toggle)
  let currentTargetFilterMode: 'all' | 'group' = 'group';
+ // Year-group filter for climate targets view (default to 'latest')
+ let currentClimateTargetYearGroup: '2020' | '2030' | '2050' | 'latest' = 'latest';
  
  // Helper to map a target year to a year group
  function getYearGroup(year: number): '2020' | '2030' | '2050' | null {
@@ -533,6 +552,27 @@ let submenuInitialized = false;
 
 // Global reference to updateMap function
 let updateMapFunction: (() => void) | null = null;
+
+// Function to map target type names to user-friendly display names
+function getTargetTypeDisplayName(targetType: string): string {
+    // Normalize the target type for comparison
+    const normalizedType = targetType.trim();
+    
+    const displayNameMap: { [key: string]: string } = {
+        'Electricity': 'Share of Renewables on Electricity Production',
+        'electricity': 'Share of Renewables on Electricity Production',
+        'Final energy': 'Share of Renewables on Final Energy Consumption',
+        'Primary energy': 'Share of Renewables on Primary Energy Consumption',
+        'Heating and cooling': 'Share of Renewables on Heating and Cooling',
+        'Transport': 'Share of Electric Vehicles on Transportation',
+        'Transportation': 'Share of Electric Vehicles on Transportation',
+        'transport': 'Share of Electric Vehicles on Transportation',
+        'transportation': 'Share of Electric Vehicles on Transportation',
+        'EV': 'Share of Electric Vehicles on Transportation'
+    };
+    
+    return displayNameMap[normalizedType] || targetType;
+}
 
 // Function to initialize targets submenu
 function initializeTargetsSubmenu() {
@@ -583,7 +623,9 @@ function initializeTargetsSubmenu() {
         targetTypes.forEach((targetType: string) => {
             const option = document.createElement('button');
             option.className = 'submenu-option';
-            option.textContent = targetType;
+            const displayName = getTargetTypeDisplayName(targetType);
+            console.log(`Target type "${targetType}" → Display name "${displayName}"`);
+            option.textContent = displayName;
             option.dataset.targetType = targetType;
             
             // Set active state for current target type
@@ -634,7 +676,8 @@ function initializeTargetsSubmenu() {
         // Just update active states if submenu already exists
         submenuOptions.querySelectorAll('.submenu-option').forEach(opt => {
             opt.classList.remove('active');
-            if (opt.textContent === currentTargetType) {
+            const optElement = opt as HTMLElement;
+            if (optElement.dataset.targetType === currentTargetType) {
                 opt.classList.add('active');
             }
         });
@@ -655,6 +698,74 @@ function showTargetsSubmenu() {
 // Function to hide targets submenu
 function hideTargetsSubmenu() {
     const submenu = document.getElementById('targetsSubmenu');
+    if (submenu) {
+        submenu.classList.remove('visible');
+    }
+}
+
+// Function to initialize climate targets submenu
+let climateSubmenuInitialized = false;
+
+function initializeClimateTargetsSubmenu() {
+    const climateYearGroupOptions = document.getElementById('climateYearGroupOptions');
+    const climateSubmenu = document.getElementById('climateTargetsSubmenu');
+    const climateSubmenuClose = document.getElementById('climateSubmenuClose');
+    const climateYearGroupWrapper = document.getElementById('climateYearGroupWrapper');
+    
+    if (!climateYearGroupOptions || !climateSubmenu || !climateSubmenuClose) return;
+    
+    console.log('Initializing climate targets submenu');
+    
+    // Only initialize if not already done
+    if (!climateSubmenuInitialized) {
+        // Always show year-group controls
+        if (climateYearGroupWrapper) climateYearGroupWrapper.classList.remove('hidden');
+        
+        // Initialize year-group options
+        if (climateYearGroupOptions && climateYearGroupOptions.children.length === 0) {
+            const groups: Array<'2020' | '2030' | '2050' | 'latest'> = ['latest', '2020', '2030', '2050'];
+            groups.forEach(group => {
+                const btn = document.createElement('button');
+                btn.className = 'year-option';
+                btn.textContent = group === 'latest' ? 'Latest Target' : group;
+                if (group === currentClimateTargetYearGroup) btn.classList.add('active');
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    currentClimateTargetYearGroup = group;
+                    // Update active state
+                    climateYearGroupOptions.querySelectorAll('.year-option').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    // Refresh map
+                    if (updateMapFunction) updateMapFunction();
+                });
+                climateYearGroupOptions.appendChild(btn);
+            });
+        }
+        
+        // Add close button event listener (only once)
+        if (!climateSubmenuInitialized) {
+            climateSubmenuClose.addEventListener('click', hideClimateTargetsSubmenu);
+        }
+        
+        climateSubmenuInitialized = true;
+    }
+}
+
+// Function to show climate targets submenu
+function showClimateTargetsSubmenu() {
+    // Initialize submenu first
+    initializeClimateTargetsSubmenu();
+    
+    const submenu = document.getElementById('climateTargetsSubmenu');
+    if (submenu) {
+        submenu.classList.add('visible');
+    }
+}
+
+// Function to hide climate targets submenu
+function hideClimateTargetsSubmenu() {
+    const submenu = document.getElementById('climateTargetsSubmenu');
     if (submenu) {
         submenu.classList.remove('visible');
     }
@@ -681,12 +792,15 @@ showLoadingIndicator();
 Promise.all([
     d3.json(`${baseUrl}world.geojson`),
     d3.csv(policyDataUrl),
-    d3.csv(targetsDataUrl)
-]).then(([geoData, policyCsv, targetsCsv]: [any, any, any]) => {
+    d3.csv(targetsDataUrl),
+    d3.csv(climateTargetsDataUrl)
+]).then(([geoData, policyCsv, targetsCsv, climateTargetsCsv]: [any, any, any, any]) => {
     console.log('Data loaded successfully:');
     console.log('Policy CSV rows:', policyCsv.length);
     console.log('Targets CSV rows:', targetsCsv.length);
+    console.log('Climate Targets CSV rows:', climateTargetsCsv.length);
     console.log('First few targets rows:', targetsCsv.slice(0, 3));
+    console.log('First few climate targets rows:', climateTargetsCsv.slice(0, 3));
     
     // If targets CSV is empty or malformed, use sample data
     if (!targetsCsv || targetsCsv.length === 0 || !targetsCsv[0] || Object.keys(targetsCsv[0]).length < 5) {
@@ -977,6 +1091,69 @@ Promise.all([
     console.log("Primary energy targets:", Object.keys(targetsData).length, "countries");
     console.log("Sample targets data:", Object.entries(targetsData).slice(0, 3));
 
+    // Process climate targets data
+    console.log("Climate Targets CSV columns:", climateTargetsCsv.columns);
+    
+    const climateTargetsData: { [countryCode: string]: any[] } = {};
+    
+    climateTargetsCsv.forEach((row: any, index: number) => {
+        // Column mapping based on the CSV structure:
+        // Country_code, Year_decision, Year_target, Target_average, Target_unit (column M)
+        const countryCode3 = row.Country_code || row[Object.keys(row)[0]];
+        const yearDecision = row.Year_decision;
+        const yearTarget = row.Year_target;
+        const targetAverage = row.Target_average;
+        const targetUnit = row.Target_unit || row[Object.keys(row)[12]]; // Column M
+        
+        if (index < 5) {
+            console.log(`Climate Target Row ${index}:`, {
+                countryCode3,
+                yearDecision,
+                yearTarget,
+                targetAverage,
+                targetUnit,
+                allKeys: Object.keys(row)
+            });
+        }
+        
+        // Process all climate targets - ONLY include rows where Target_unit is "Percent"
+        if (countryCode3 && yearDecision && yearTarget && targetAverage && targetUnit) {
+            const normalizedUnit = String(targetUnit).trim().toLowerCase();
+            
+            // Only process if Target_unit is "Percent"
+            if (normalizedUnit === 'percent') {
+                const parsedYearDecision = parseInt(yearDecision);
+                const parsedYearTarget = parseInt(yearTarget);
+                const parsedTargetAverage = parseFloat(targetAverage);
+                
+                if (!isNaN(parsedYearDecision) && !isNaN(parsedYearTarget) && !isNaN(parsedTargetAverage)) {
+                    if (!climateTargetsData[countryCode3]) {
+                        climateTargetsData[countryCode3] = [];
+                    }
+                    
+                    climateTargetsData[countryCode3].push({
+                        yearDecision: parsedYearDecision,
+                        yearTarget: parsedYearTarget,
+                        targetValue: parsedTargetAverage,
+                        countryName: countryCode3toName[countryCode3] || countryCode3,
+                        targetUnit: targetUnit
+                    });
+                }
+            }
+        }
+    });
+    
+    // For each country, select the latest target based on year decision
+    const latestClimateTargetsData: { [countryCode: string]: any } = {};
+    Object.entries(climateTargetsData).forEach(([countryCode, targets]) => {
+        // Sort by year decision (most recent first)
+        const sortedTargets = targets.sort((a, b) => b.yearDecision - a.yearDecision);
+        latestClimateTargetsData[countryCode] = sortedTargets[0];
+    });
+    
+    console.log("Processed climate targets data:", Object.keys(latestClimateTargetsData).length, "countries");
+    console.log("Sample climate targets data:", Object.entries(latestClimateTargetsData).slice(0, 3));
+
     // Store all processed data globally
     allData = {
         geoData,
@@ -994,6 +1171,12 @@ Promise.all([
             colorScale: null, // Will be set below
             colorScales: {}, // Will store color scales for each target type
             minMax: {} // Will store min/max values for each target type
+        },
+        climateTargets: {
+            data: latestClimateTargetsData,
+            allData: climateTargetsData,
+            colorScale: null, // Will be set below
+            minMax: { min: 0, max: 0 } // Will be set below
         }
     };
 
@@ -1046,12 +1229,22 @@ Promise.all([
     const evColorScale = d3.scaleSequential(d3.interpolateReds)
         .domain([0, 100]);
 
+    // Create color scale for climate targets
+    // REVERSED: Lower values (e.g., -100) represent bigger reductions, so they should be darkest
+    const climateTargetValues = Object.values(latestClimateTargetsData).map((d: any) => d.targetValue);
+    const minClimateTarget = climateTargetValues.length > 0 ? d3.min(climateTargetValues) : -100;
+    const maxClimateTarget = climateTargetValues.length > 0 ? d3.max(climateTargetValues) : 0;
+    const climateTargetsColorScale = d3.scaleSequential(d3.interpolatePurples)
+        .domain([maxClimateTarget as number, minClimateTarget as number]); // REVERSED: max to min
+
     // Store color scales in allData
     allData.policies.colorScale = policyColorScale;
     allData.targets.colorScale = targetsColorScale;
     allData.targets.colorScales = targetColorScales;
     allData.targets.minMax = targetMinMax;
     allData.ev = { colorScale: evColorScale };
+    allData.climateTargets.colorScale = climateTargetsColorScale;
+    allData.climateTargets.minMax = { min: minClimateTarget as number, max: maxClimateTarget as number };
 
     // Function to get country color based on current map type
     function getCountryColor(countryCode: string): string {
@@ -1094,6 +1287,37 @@ Promise.all([
             } else {
                 return '#b0b0b0';
             }
+        } else if (currentMapType === 'climateTargets') {
+            // Climate targets data with year group filtering
+            const allClimateTargets = allData.climateTargets.allData || {};
+            const currentColorScale = allData.climateTargets.colorScale;
+            
+            if (countryCode && allClimateTargets[countryCode] && currentColorScale) {
+                const targets = allClimateTargets[countryCode];
+                
+                if (currentClimateTargetYearGroup === 'latest') {
+                    // Show the most recent target (by decision year)
+                    const latestTarget = targets.sort((a: any, b: any) => b.yearDecision - a.yearDecision)[0];
+                    return currentColorScale(latestTarget.targetValue);
+                }
+                
+                // Year group filtering (2020, 2030, 2050)
+                // Find targets that match the selected year group
+                const matchingTargets = targets.filter((t: any) => {
+                    const group = getYearGroup(Number(t.yearTarget));
+                    return group === currentClimateTargetYearGroup;
+                });
+                
+                if (matchingTargets.length > 0) {
+                    // Use the most recent target (by decision year) within the matching group
+                    const latestMatchingTarget = matchingTargets.sort((a: any, b: any) => b.yearDecision - a.yearDecision)[0];
+                    return currentColorScale(latestMatchingTarget.targetValue);
+                }
+                
+                return '#d4d4d4';
+            } else {
+                return '#b0b0b0';
+            }
         } else if (currentMapType === 'ev') {
             // Placeholder for EV data - will be implemented later
             return '#b0b0b0';
@@ -1109,10 +1333,37 @@ Promise.all([
         } else if (currentMapType === 'targets') {
             const currentTargetData = allData.targets.dataByType[currentTargetType] || {};
             const targetInfo = currentTargetData[countryCode];
+            const displayName = getTargetTypeDisplayName(currentTargetType);
             if (targetInfo) {
-                return `<strong>${countryName}</strong><br/>Target Type: ${currentTargetType}<br/>Target: ${targetInfo.targetValue}% by ${targetInfo.targetYear}<br/>Decision: ${targetInfo.decisionDate}`;
+                return `<strong>${countryName}</strong><br/>Target Type: ${displayName}<br/>Target: ${targetInfo.targetValue}% by ${targetInfo.targetYear}<br/>Decision: ${targetInfo.decisionDate}`;
             } else {
-                return `<strong>${countryName}</strong><br/>No ${currentTargetType} target data`;
+                return `<strong>${countryName}</strong><br/>No ${displayName} target data`;
+            }
+        } else if (currentMapType === 'climateTargets') {
+            const allClimateTargets = allData.climateTargets.allData || {};
+            if (allClimateTargets[countryCode]) {
+                const targets = allClimateTargets[countryCode];
+                
+                if (currentClimateTargetYearGroup === 'latest') {
+                    // Show the most recent target (by decision year)
+                    const latestTarget = targets.sort((a: any, b: any) => b.yearDecision - a.yearDecision)[0];
+                    return `<strong>${countryName}</strong><br/>Climate Target: ${latestTarget.targetValue}% by ${latestTarget.yearTarget}<br/>Decision Year: ${latestTarget.yearDecision}`;
+                }
+                
+                // Year group filtering - show target matching the selected year group
+                const matchingTargets = targets.filter((t: any) => {
+                    const group = getYearGroup(Number(t.yearTarget));
+                    return group === currentClimateTargetYearGroup;
+                });
+                
+                if (matchingTargets.length > 0) {
+                    const latestMatchingTarget = matchingTargets.sort((a: any, b: any) => b.yearDecision - a.yearDecision)[0];
+                    return `<strong>${countryName}</strong><br/>Climate Target: ${latestMatchingTarget.targetValue}% by ${latestMatchingTarget.yearTarget}<br/>Decision Year: ${latestMatchingTarget.yearDecision}`;
+                } else {
+                    return `<strong>${countryName}</strong><br/>No climate target data for ${currentClimateTargetYearGroup}`;
+                }
+            } else {
+                return `<strong>${countryName}</strong><br/>No climate target data`;
             }
         } else if (currentMapType === 'ev') {
             return `<strong>${countryName}</strong><br/>EV data coming soon`;
@@ -1137,6 +1388,12 @@ Promise.all([
                 // Use same min/max for all target types for consistency
                 minValue = minTargets;
                 maxValue = maxTargets;
+                break;
+            case 'climateTargets':
+                interpolateFunction = d3.interpolatePurples;
+                // REVERSED: Display max (less reduction) on left, min (more reduction) on right
+                minValue = maxClimateTarget;
+                maxValue = minClimateTarget;
                 break;
             case 'ev':
                 interpolateFunction = d3.interpolateReds;
@@ -1188,7 +1445,7 @@ Promise.all([
                 .call(zoom.transform as any, d3.zoomIdentity
                     .translate(width / 2 - europeTranslate[0] * europeScale, height / 2 - europeTranslate[1] * europeScale)
                     .scale(europeScale));
-        } else if (mapType === 'targets') {
+        } else if (mapType === 'targets' || mapType === 'climateTargets') {
             // Zoom to world view with proper centering (slightly expanded from Europe view)
             const worldCenter: [number, number] = [5, 48]; // Same center as Europe to prevent shifting
             const worldScale = 1.3; // Just a bit less than Europe's 5 scale
@@ -1243,13 +1500,78 @@ Promise.all([
             return lower.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         };
 
-        // Layout container: two panels side-by-side (stack on narrow screens)
+		// Early no-data check: if neither pie nor time series has content, show kind message
+		const countryPolicyTypesEarly = policyTypeData[countryCode3] || {};
+		const hasPieDataEarly = Object.keys(countryPolicyTypesEarly).length > 0;
+		const countryTimeEarly = timeSeriesData[countryCode3];
+		let hasTimeSeriesEarly = false;
+		if (countryTimeEarly && Object.keys(countryTimeEarly).length > 0) {
+			hasTimeSeriesEarly = Object.values(countryTimeEarly).some((yd: any) => Object.values(yd || {}).some((v: any) => Number(v) > 0));
+		}
+		if (!hasPieDataEarly && !hasTimeSeriesEarly) {
+			modalContent.innerHTML = `
+				<div style="display:flex;align-items:center;justify-content:center;height:100%;">
+					<div style="text-align:center;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:24px 20px;max-width:560px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+						<div style="font-size:18px;font-weight:700;margin-bottom:6px;">We’re on it</div>
+						<div style="font-size:14px;">We don’t have dashboard data for ${countryName} yet. We’re working to add it soon.</div>
+					</div>
+				</div>`;
+			openModal();
+			return;
+		}
+
+        // Toolbar + layout container
         modalContent.innerHTML = `
+            <div id="dashboard-toolbar" style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:8px;">
+                <button id="download-country-policies" style="padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; background:#ffffff; color:#334155; font-weight:600; cursor:pointer;">
+                    Download policies (.xlsx)
+                </button>
+            </div>
             <div id="dashboard-top" style="display:flex; gap:16px; width:100%; height:100%; flex-direction:row;">
                 <div id="dashboard-pie" style="flex:1; min-height:300px; background:#f8fafc; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);"></div>
                 <div id="dashboard-timeseries" style="flex:1; min-height:300px; background:#f8fafc; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);"></div>
             </div>
         `;
+        // Hook export button
+        const btnExport = document.getElementById('download-country-policies');
+        if (btnExport) {
+            btnExport.addEventListener('click', () => {
+                // Build dataset for selected country (policies only)
+                const rows = policyCsv.filter((row: any) => {
+                    const cName = row.country;
+                    if (!cName) return false;
+                    const code3 = countryNameMap[cName] || null;
+                    return code3 === countryCode3;
+                });
+
+                // Project to curated columns if present
+                const preferCols = [
+                    'country',
+                    'measure',
+                    'Technology_type',
+                    'year',
+                    policyChangedDetailColumnName || 'policy_changed_detail',
+                    'level_1',
+                    'level_1_currency',
+                    'level_1_percent_type_detail',
+                    'level_1_unit'
+                ].filter(Boolean) as string[];
+
+                const useCols = preferCols.filter(col => rows.length === 0 || rows.some((r: any) => r[col] !== undefined));
+                const dataOut = rows.map((r: any) => {
+                    const obj: any = {};
+                    useCols.forEach(col => { obj[col] = r[col] ?? ''; });
+                    return obj;
+                });
+
+                // Create workbook and sheet
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(dataOut);
+                XLSX.utils.book_append_sheet(wb, ws, 'Policies');
+                const safeName = countryName.replace(/[^\w\-]+/g, '_');
+                XLSX.writeFile(wb, `${safeName}_policies.xlsx`);
+            });
+        }
         // Open the modal before measuring sizes to ensure containers have dimensions
         openModal();
 
@@ -1439,21 +1761,31 @@ Promise.all([
                     const box = document.createElement('div');
                     box.className = 'policy-detail-popup';
                     box.style.position = 'absolute';
-                    box.style.right = '24px';
-                    box.style.bottom = '24px';
-                    box.style.maxWidth = '360px';
+                    // Responsive sizing: ~85% of content area on desktop, 95% on small screens
+                    const parentRect = parent.getBoundingClientRect();
+                    const isNarrow = parentRect.width < 768;
+                    box.style.right = isNarrow ? 'auto' : '24px';
+                    box.style.left = isNarrow ? '50%' : 'auto';
+                    box.style.transform = isNarrow ? 'translateX(-50%)' : 'none';
+                    box.style.bottom = isNarrow ? '16px' : '24px';
+                    // Width: keep compact on desktop, full on mobile
+                    box.style.width = isNarrow ? '95%' : 'auto';
+                    box.style.maxWidth = isNarrow ? '95%' : '720px';
+                    // Height: take up to ~85% of modal content height
+                    box.style.maxHeight = '85%';
+                    box.style.overflowY = 'auto';
                     box.style.background = 'rgba(255,255,255,0.95)';
                     box.style.border = '1px solid #e5e7eb';
                     box.style.borderRadius = '12px';
                     box.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
-                    box.style.padding = '14px';
+                    box.style.padding = isNarrow ? '12px' : '14px';
                     box.style.zIndex = '1000';
                     const title = document.createElement('div');
                     title.style.display = 'flex';
                     title.style.justifyContent = 'space-between';
                     title.style.alignItems = 'center';
                     title.style.marginBottom = '8px';
-                    title.innerHTML = `<span style="font-weight:600; color:#111827">${countryName} — ${measure} (${year})</span>`;
+                    title.innerHTML = `<span style="font-weight:600; color:#111827; font-size:${isNarrow ? '14px' : '16px'};">${countryName} — ${measure} (${year})</span>`;
                     const close = document.createElement('button');
                     close.textContent = '×';
                     close.style.fontSize = '18px';
@@ -1474,17 +1806,17 @@ Promise.all([
                     } else {
                         limited.forEach(r => {
                             const item = document.createElement('div');
-                            item.style.padding = '10px';
+                            item.style.padding = isNarrow ? '8px' : '10px';
                             item.style.borderRadius = '8px';
                             item.style.background = '#f9fafb';
                             item.style.border = '1px solid #e5e7eb';
                             const f = (name: string) => r[name] ?? '';
                             item.innerHTML = `
-                                <div style="font-weight:600; color:#374151;">${f('level_1') || '(no title)'}</div>
-                                <div style="font-size:12px; color:#4b5563;">Tech: ${f('Technology_type') || '-'}</div>
-                                <div style="font-size:12px; color:#4b5563;">Currency: ${f('level_1_currency') || '-'}</div>
-                                <div style="font-size:12px; color:#4b5563;">Percent Detail: ${f('level_1_percent_type_detail') || '-'}</div>
-                                <div style="font-size:12px; color:#4b5563;">Unit: ${f('level_1_unit') || '-'}</div>
+                                <div style="font-weight:600; color:#374151; font-size:${isNarrow ? '13px' : '14px'};">${f('level_1') || '(no title)'}</div>
+                                <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Tech: ${f('Technology_type') || '-'}</div>
+                                <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Currency: ${f('level_1_currency') || '-'}</div>
+                                <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Percent Detail: ${f('level_1_percent_type_detail') || '-'}</div>
+                                <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Unit: ${f('level_1_unit') || '-'}</div>
                             `;
                             list.appendChild(item);
                         });
@@ -1506,6 +1838,7 @@ Promise.all([
                     .attr('rx', 3).attr('ry', 3)
                     .attr('fill', d => getMeasureColor(d.measure))
                     .style('opacity', 0.95)
+                    .style('cursor', 'pointer')
                     .on('click', function(event, d: any) {
                         const measure = d.measure as string;
                         const year = Number(d.year);
@@ -1523,8 +1856,20 @@ Promise.all([
                         });
                         showPolicyDetailPopup(measure, year, rows);
                     })
-                    .on('mouseover', function() { d3.select(this).style('opacity', 1); })
-                    .on('mouseout', function() { d3.select(this).style('opacity', 0.95); });
+                    .on('mouseover', function() {
+                        d3.select(this)
+                            .style('opacity', 1)
+                            .style('stroke', 'rgba(17, 24, 39, 0.5)')
+                            .style('stroke-width', 1.5)
+                            .style('filter', 'saturate(1.6) contrast(1.15)');
+                    })
+                    .on('mouseout', function() {
+                        d3.select(this)
+                            .style('opacity', 0.95)
+                            .style('stroke', null)
+                            .style('stroke-width', 1)
+                            .style('filter', 'none');
+                    });
 
                 // Axes
                 const xDomainDash = x.domain();
@@ -1756,20 +2101,23 @@ Promise.all([
             .attr('ry', 3)
             .attr('fill', d => globalColorScale(d.measure as string) as string)
             .style('fill-opacity', 0.88)
-            .style('stroke', 'rgba(255, 255, 255, 0.8)')
+            .style('stroke', 'rgba(255, 255, 255, 0.6)')
             .style('stroke-width', 1)
-            .style('transition', 'all 0.3s ease');
+            .style('transition', 'all 0.3s ease')
+            .style('cursor', 'pointer');
 
         // Hover effects
         cellsSel.on('mouseenter', function() {
                 d3.select(this)
-                    .style('filter', 'brightness(1.05)')
-                    .style('stroke-width', 2);
+                    .style('filter', 'saturate(1.6) contrast(1.15)')
+                    .style('stroke-width', 1.5)
+                    .style('stroke', 'rgba(17, 24, 39, 0.5)');
             })
             .on('mouseleave', function() {
                 d3.select(this)
-                    .style('filter', 'brightness(1)')
-                    .style('stroke-width', 1);
+                    .style('filter', 'none')
+                    .style('stroke-width', 1)
+                    .style('stroke', 'rgba(255, 255, 255, 0.6)');
             });
 
         // Legend removed: y-axis labels already show policy names
@@ -1922,7 +2270,7 @@ Promise.all([
         radio.addEventListener('change', (event) => {
             const target = event.target as HTMLInputElement;
             if (target.checked) {
-                currentMapType = target.value;
+                currentMapType = target.value as 'policies' | 'ev' | 'targets' | 'climateTargets';
                 updateMap();
             }
         });
@@ -1935,7 +2283,7 @@ Promise.all([
     if (toggleSwitch && toggleOptions.length > 0) {
         toggleOptions.forEach((option, index) => {
             option.addEventListener('click', () => {
-                const values = ['policies', 'ev', 'targets'];
+                const values = ['policies', 'ev', 'targets', 'climateTargets'];
                 const selectedValue = values[index];
                 
                 if (selectedValue === 'targets') {
@@ -1945,12 +2293,29 @@ Promise.all([
                     // Update toggle switch appearance
                     toggleSwitch.setAttribute('data-active', selectedValue);
                     
+                    // Hide climate targets submenu if it's open
+                    hideClimateTargetsSubmenu();
+                    
                     showTargetsSubmenu();
                     // Update the map to show Electricity data immediately
                     updateMap();
-                } else {
-                    // Hide targets submenu if it's open
+                } else if (selectedValue === 'climateTargets') {
+                    // Set map type to climate targets and show submenu
+                    currentMapType = 'climateTargets';
+                    
+                    // Update toggle switch appearance
+                    toggleSwitch.setAttribute('data-active', selectedValue);
+                    
+                    // Hide RE targets submenu if it's open
                     hideTargetsSubmenu();
+                    
+                    showClimateTargetsSubmenu();
+                    // Update the map to show climate targets data immediately
+                    updateMap();
+                } else {
+                    // Hide both submenus if they're open
+                    hideTargetsSubmenu();
+                    hideClimateTargetsSubmenu();
                     
                     // Update toggle switch appearance
                     toggleSwitch.setAttribute('data-active', selectedValue);
@@ -1959,7 +2324,7 @@ Promise.all([
                     const radioButton = document.querySelector(`input[name="mapType"][value="${selectedValue}"]`) as HTMLInputElement;
                     if (radioButton) {
                         radioButton.checked = true;
-                        currentMapType = selectedValue;
+                        currentMapType = selectedValue as 'policies' | 'ev' | 'targets' | 'climateTargets';
                         updateMap();
                     }
                 }
@@ -1973,22 +2338,27 @@ Promise.all([
     // Hide loading indicator after initial map is loaded
     hideLoadingIndicator();
 
-    // Adapt toggle switch size to the map box (~8% of width)
+    // Adapt toggle switch size to the map box (~12% of width for 4 options with longer text)
     function adaptToggleSize() {
         const container = document.getElementById('world-map-container') as HTMLElement | null;
         const toggle = document.getElementById('mapTypeToggle') as HTMLElement | null;
         const submenu = document.getElementById('targetsSubmenu') as HTMLElement | null;
+        const climateSubmenu = document.getElementById('climateTargetsSubmenu') as HTMLElement | null;
         if (!container || !toggle) return;
         const rect = container.getBoundingClientRect();
-        // Target ~8% of map width; clamp for usability
-        const targetWidth = Math.round(rect.width * 0.08);
-        const width = Math.max(220, Math.min(380, targetWidth));
-        const height = Math.max(40, Math.min(72, Math.round(width * 0.17))); // keep aspect ratio similar to original
+        // Target ~12% of map width for 4 options with longer text; clamp for usability
+        const targetWidth = Math.round(rect.width * 0.12);
+        const width = Math.max(340, Math.min(520, targetWidth));
+        const height = Math.max(42, Math.min(72, Math.round(width * 0.15))); // keep aspect ratio
         toggle.style.width = `${width}px`;
         toggle.style.height = `${height}px`;
         if (submenu) {
             const submenuWidth = Math.max(380, width);
             submenu.style.width = `${submenuWidth}px`;
+        }
+        if (climateSubmenu) {
+            const climateSubmenuWidth = Math.max(380, width);
+            climateSubmenu.style.width = `${climateSubmenuWidth}px`;
         }
     }
     // Size now and on resize
