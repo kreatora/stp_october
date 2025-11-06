@@ -539,10 +539,10 @@ let currentMapType: 'policies' | 'ev' | 'targets' | 'climateTargets' = 'policies
      // Groups as described: 
      // 2020: targets until 2020 plus 5 years => <= 2025
      // 2030: 2025 to 2035 (inclusive overlap at boundaries)
-     // 2050: 2035 to 2050
+    // 2050: 2035 and beyond (to infinity)
      if (year <= 2025) return '2020';
      if (year >= 2025 && year <= 2035) return '2030';
-     if (year >= 2035 && year <= 2050) return '2050';
+    if (year >= 2035) return '2050'; // Changed: now includes all years >= 2035
      return null;
  }
 let allData: any = {};
@@ -1035,6 +1035,7 @@ Promise.all([
     
     // Process targets data - organize by target type
     const targetsDataByType: { [targetType: string]: { [countryCode: string]: any } } = {};
+    const allTargetsDataByCountry: { [countryCode: string]: any[] } = {}; // Store ALL targets for each country
     const allTargetTypes = new Set<string>();
     
     targetsCsv.forEach((row: any, index: number) => {
@@ -1063,8 +1064,10 @@ Promise.all([
             const parsedDate = new Date(decisionDate);
             const parsedTargetValue = parseFloat(targetValue);
             const parsedTargetYear = parseInt(targetYear);
+            const decisionYear = parsedDate.getFullYear();
             
             if (!isNaN(parsedDate.getTime()) && !isNaN(parsedTargetValue) && !isNaN(parsedTargetYear)) {
+                // Store latest target for map display
                 if (!targetsDataByType[targetType]) {
                     targetsDataByType[targetType] = {};
                 }
@@ -1079,6 +1082,19 @@ Promise.all([
                         targetType: targetType
                     };
                 }
+                
+                // Store ALL targets for dashboard chart
+                if (!allTargetsDataByCountry[countryCode3]) {
+                    allTargetsDataByCountry[countryCode3] = [];
+                }
+                
+                allTargetsDataByCountry[countryCode3].push({
+                    targetType: targetType,
+                    decisionYear: decisionYear,
+                    targetYear: parsedTargetYear,
+                    targetValue: parsedTargetValue,
+                    decisionDate: decisionDate
+                });
             }
         }
     });
@@ -1168,6 +1184,7 @@ Promise.all([
             data: targetsData,
             dataByType: targetsDataByType,
             allTargetTypes: Array.from(allTargetTypes),
+            allTargetsByCountry: allTargetsDataByCountry, // All targets for dashboard
             colorScale: null, // Will be set below
             colorScales: {}, // Will store color scales for each target type
             minMax: {} // Will store min/max values for each target type
@@ -1500,7 +1517,7 @@ Promise.all([
             return lower.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         };
 
-		// Early no-data check: if neither pie nor time series has content, show kind message
+		// Early no-data check: if no policy, targets, or climate targets data exists, show kind message
 		const countryPolicyTypesEarly = policyTypeData[countryCode3] || {};
 		const hasPieDataEarly = Object.keys(countryPolicyTypesEarly).length > 0;
 		const countryTimeEarly = timeSeriesData[countryCode3];
@@ -1508,12 +1525,25 @@ Promise.all([
 		if (countryTimeEarly && Object.keys(countryTimeEarly).length > 0) {
 			hasTimeSeriesEarly = Object.values(countryTimeEarly).some((yd: any) => Object.values(yd || {}).some((v: any) => Number(v) > 0));
 		}
-		if (!hasPieDataEarly && !hasTimeSeriesEarly) {
+		
+		// Check if there are any targets for this country
+		const countryTargets = allData.targets.allTargetsByCountry?.[countryCode3] || [];
+		const hasTargetsData = countryTargets.length > 0;
+		
+		// Check if there are any climate targets for this country
+		const allClimateTargets = allData.climateTargets.allData || {};
+		const hasClimateTargetsData = allClimateTargets[countryCode3] && 
+			Object.values(allClimateTargets[countryCode3]).some((targets: any) => 
+				Array.isArray(targets) && targets.length > 0
+			);
+		
+		// Only show "no data" message if there's NO data at all (no policies, no targets, no climate targets)
+		if (!hasPieDataEarly && !hasTimeSeriesEarly && !hasTargetsData && !hasClimateTargetsData) {
 			modalContent.innerHTML = `
 				<div style="display:flex;align-items:center;justify-content:center;height:100%;">
 					<div style="text-align:center;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:24px 20px;max-width:560px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-						<div style="font-size:18px;font-weight:700;margin-bottom:6px;">We’re on it</div>
-						<div style="font-size:14px;">We don’t have dashboard data for ${countryName} yet. We’re working to add it soon.</div>
+						<div style="font-size:18px;font-weight:700;margin-bottom:6px;">We're on it</div>
+						<div style="font-size:14px;">We don't have dashboard data for ${countryName} yet. We're working to add it soon.</div>
 					</div>
 				</div>`;
 			openModal();
@@ -1588,94 +1618,489 @@ Promise.all([
                 window.addEventListener('resize', updateLayout, { once: true });
             }
 
-            // Pie chart: Technology_type distribution
-            const pieContainer = document.getElementById('dashboard-pie');
-            const countryPolicyTypes = policyTypeData[countryCode3] || {};
-            const pieData = Object.entries(countryPolicyTypes).map(([type, count]) => ({ type, count: count as number }));
-            if (pieContainer && pieData.length > 0) {
-                const rect = pieContainer.getBoundingClientRect();
-                const svg = d3.select(pieContainer).append('svg')
+            // Targets Progression Chart: Show how RE targets have evolved over time
+            const targetsContainer = document.getElementById('dashboard-pie');
+            
+            // Get ALL targets for this country from the stored data
+            const countryTargets = allData.targets.allTargetsByCountry?.[countryCode3] || [];
+            
+            console.log(`Country ${countryName} has ${countryTargets.length} total targets`);
+            
+            if (targetsContainer && countryTargets.length > 0) {
+                const rect = targetsContainer.getBoundingClientRect();
+                const margin = { top: 40, right: 60, bottom: 60, left: 60 };
+                const width = rect.width - margin.left - margin.right;
+                const height = rect.height - margin.top - margin.bottom;
+                
+                const svg = d3.select(targetsContainer).append('svg')
                     .attr('width', rect.width)
                     .attr('height', rect.height)
-                    .style('filter', 'drop-shadow(0 4px 8px rgba(0,0,0,0.06))');
-                const gPie = svg.append('g').attr('transform', `translate(${rect.width / 2}, ${rect.height / 2})`);
+                    .style('background', '#f8fafc')
+                    .style('border-radius', '12px');
+                
+                const g = svg.append('g')
+                    .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+                // Create custom tooltip for instant display
+                const tooltip = d3.select(targetsContainer).append('div')
+                    .attr('class', 'target-tooltip')
+                    .style('position', 'absolute')
+                    .style('visibility', 'hidden')
+                    .style('background', 'rgba(0, 0, 0, 0.9)')
+                    .style('color', '#fff')
+                    .style('padding', '6px 10px')
+                    .style('border-radius', '4px')
+                    .style('font-size', '11px')
+                    .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
+                    .style('pointer-events', 'none')
+                    .style('z-index', '10000')
+                    .style('white-space', 'nowrap')
+                    .style('box-shadow', '0 2px 4px rgba(0, 0, 0, 0.2)');
 
                 // Chart title
                 svg.append('text')
                     .attr('x', rect.width / 2)
-                    .attr('y', 18)
+                    .attr('y', 20)
                     .style('text-anchor', 'middle')
-                    .style('font-size', '14px')
+                    .style('font-size', '15px')
+                    .style('font-weight', '700')
+                    .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
+                    .style('fill', '#1e293b')
+                    .text('Renewable Energy Targets Progression');
+
+                // Determine the year range
+                const allYears = countryTargets.flatMap((t: any) => [t.decisionYear, t.targetYear]);
+                const minYear = Math.min(...allYears);
+                const maxYear = Math.max(...allYears);
+                const yearPadding = Math.max(2, Math.ceil((maxYear - minYear) * 0.1));
+                
+                // Scales
+                const xScale = d3.scaleLinear()
+                    .domain([minYear - yearPadding, maxYear + yearPadding])
+                    .range([0, width]);
+                
+                const yScale = d3.scaleLinear()
+                    .domain([0, 100])
+                    .range([height, 0]);
+                
+                // Grid lines
+                const gridGroup = g.append('g').attr('class', 'grid');
+                
+                // Horizontal grid lines
+                gridGroup.selectAll('.grid-h')
+                    .data(yScale.ticks(5))
+                    .enter().append('line')
+                    .attr('class', 'grid-h')
+                    .attr('x1', 0)
+                    .attr('x2', width)
+                    .attr('y1', d => yScale(d))
+                    .attr('y2', d => yScale(d))
+                    .style('stroke', '#e2e8f0')
+                    .style('stroke-dasharray', '3,3')
+                    .style('opacity', 0.5);
+                
+                // Axes
+                const xAxis = d3.axisBottom(xScale)
+                    .tickFormat(d => d3.format('d')(d as number))
+                    .ticks(Math.min(8, maxYear - minYear));
+                
+                const yAxis = d3.axisLeft(yScale)
+                    .tickFormat(d => `${d}%`)
+                    .ticks(5);
+                
+                g.append('g')
+                    .attr('transform', `translate(0, ${height})`)
+                    .call(xAxis)
+                    .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
+                    .style('font-size', '11px')
+                    .style('color', '#64748b');
+                
+                g.append('g')
+                    .call(yAxis)
+                    .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
+                    .style('font-size', '11px')
+                    .style('color', '#64748b');
+                
+                // Axis labels
+                g.append('text')
+                    .attr('x', width / 2)
+                    .attr('y', height + 45)
+                    .style('text-anchor', 'middle')
+                    .style('font-size', '12px')
                     .style('font-weight', '600')
                     .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
-                    .style('fill', '#334155')
-                    .text('Technology Support');
-
-                const radius = Math.max(60, Math.min(rect.width, rect.height) * 0.35);
-                const arc = d3.arc<any>().outerRadius(radius).innerRadius(radius * 0.45).cornerRadius(8);
-                const pie = d3.pie<any>().value((d: any) => d.count).sort(null);
-
-                const defs = svg.append('defs');
-                // Helper to sanitize IDs (avoid spaces and special chars causing missing gradients → black fill)
-                const sanitizeId = (s: string) => s.replace(/[^a-zA-Z0-9_-]/g, '-');
-
-                pieData.forEach(d => {
-                    const base = (globalTechColorScale(d.type) as string) || '#8fb9e0';
-                    const id = `dash-pie-${sanitizeId(d.type)}`;
-                    const lg = defs.append('linearGradient').attr('id', id).attr('x1','0%').attr('y1','0%').attr('x2','100%').attr('y2','0%');
-                    lg.append('stop').attr('offset','0%').attr('stop-color', base).attr('stop-opacity', 1);
-                    lg.append('stop').attr('offset','100%').attr('stop-color', d3.color(base)?.darker(0.3)?.toString() || '#1e40af').attr('stop-opacity', 1);
+                    .style('fill', '#475569')
+                    .text('Year');
+                
+                g.append('text')
+                    .attr('transform', 'rotate(-90)')
+                    .attr('x', -height / 2)
+                    .attr('y', -45)
+                    .style('text-anchor', 'middle')
+                    .style('font-size', '12px')
+                    .style('font-weight', '600')
+                    .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
+                    .style('fill', '#475569')
+                    .text('Target (%)');
+                
+                // Determine which target types should be visible initially (only Electricity)
+                const allTargetTypes = Array.from(new Set(countryTargets.map((t: any) => t.targetType)));
+                const initiallyVisibleTypes = new Set(
+                    allTargetTypes.filter((type: any) => 
+                        String(type).toLowerCase().includes('electric')
+                    )
+                );
+                
+                // Helper function to check if a target type should be initially visible
+                const shouldBeVisible = (targetType: string) => initiallyVisibleTypes.has(targetType);
+                
+                // Color scale for different target types
+                const targetTypeColors = d3.scaleOrdinal()
+                    .domain(allTargetTypes as string[])
+                    .range(['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444']);
+                
+                // Sort targets by target type and decision year for proper connection
+                const sortedTargets = [...countryTargets].sort((a: any, b: any) => {
+                    if (a.targetType !== b.targetType) {
+                        return a.targetType.localeCompare(b.targetType);
+                    }
+                    return a.decisionYear - b.decisionYear;
                 });
-
-                const slices = gPie.selectAll('.slice').data(pie(pieData)).enter().append('g').attr('class','slice');
-                slices.append('path')
-                    .attr('d', arc as any)
-                    .attr('fill', (d: any) => `url(#dash-pie-${sanitizeId(d.data.type)})`)
-                    .style('opacity', 0.95)
-                    .on('mouseover', function() { d3.select(this).style('filter','brightness(1.1)'); })
-                    .on('mouseout', function() { d3.select(this).style('filter', null); });
-
-                const total = pieData.reduce((s, d) => s + d.count, 0);
-                slices.append('text')
-                    .attr('transform', (d: any) => `translate(${arc.centroid(d)})`)
-                    .attr('text-anchor', 'middle')
-                    .attr('font-size', '12px')
-                    .attr('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
-                    .attr('fill', '#ffffff')
-                    .attr('font-weight', '600')
-                    .style('text-shadow', '0 1px 2px rgba(0,0,0,0.5)')
-                    .text((d: any) => {
-                        const pct = Math.round((d.data.count / total) * 100);
-                        return pct > 5 ? `${pct}%` : '';
-                    });
-
-                // Compact legend (top-right of pie panel)
-                const legendMargin = { top: 12, right: 12 };
-                const legendGroup = svg.append('g')
-                    .attr('transform', `translate(${rect.width - 160 - legendMargin.right}, ${legendMargin.top})`);
-                const legendItems = pieData
-                    .sort((a, b) => (b.count as number) - (a.count as number))
-                    .slice(0, 10);
-                legendItems.forEach((d, i) => {
-                    const row = legendGroup.append('g')
-                        .attr('transform', `translate(0, ${i * 18})`);
-                    row.append('circle')
-                        .attr('cx', 6)
-                        .attr('cy', 6)
+                
+                // Group targets by type to find connections
+                const targetsByType: { [key: string]: any[] } = {};
+                sortedTargets.forEach((target: any) => {
+                    if (!targetsByType[target.targetType]) {
+                        targetsByType[target.targetType] = [];
+                    }
+                    targetsByType[target.targetType].push(target);
+                });
+                
+                // Draw connection lines first (dashed lines when targets change before deadline)
+                Object.entries(targetsByType).forEach(([targetType, targets]: [string, any[]]) => {
+                    const color = targetTypeColors(targetType) as string;
+                    
+                    for (let i = 1; i < targets.length; i++) {
+                        const prevTarget = targets[i - 1];
+                        const currTarget = targets[i];
+                        
+                        // If current target is announced before previous target's deadline
+                        if (currTarget.decisionYear < prevTarget.targetYear) {
+                            // Draw dashed vertical line connecting them at the new decision year
+                            g.append('line')
+                                .attr('class', `target-line target-type-${targetType.replace(/[^a-zA-Z0-9]/g, '-')}`)
+                                .attr('data-target-type', targetType)
+                                .attr('x1', xScale(currTarget.decisionYear))
+                                .attr('x2', xScale(currTarget.decisionYear))
+                                .attr('y1', yScale(prevTarget.targetValue))
+                                .attr('y2', yScale(currTarget.targetValue))
+                                .style('stroke', color)
+                                .style('stroke-width', 2)
+                                .style('stroke-dasharray', '5,5')
+                                .style('opacity', shouldBeVisible(targetType) ? 0.6 : 0)
+                                .style('pointer-events', shouldBeVisible(targetType) ? 'auto' : 'none')
+                                .on('mouseenter', function(event: any) {
+                                    const [mouseX, mouseY] = d3.pointer(event, targetsContainer);
+                                    tooltip
+                                        .style('visibility', 'visible')
+                                        .html(`Target updated in ${currTarget.decisionYear}<br/>From ${prevTarget.targetValue}% to ${currTarget.targetValue}%`)
+                                        .style('top', (mouseY + 10) + 'px')
+                                        .style('left', (mouseX + 10) + 'px');
+                                })
+                                .on('mousemove', function(event: any) {
+                                    const [mouseX, mouseY] = d3.pointer(event, targetsContainer);
+                                    tooltip
+                                        .style('top', (mouseY + 10) + 'px')
+                                        .style('left', (mouseX + 10) + 'px');
+                                })
+                                .on('mouseleave', function() {
+                                    tooltip.style('visibility', 'hidden');
+                                });
+                        }
+                    }
+                });
+                
+                // Draw lines for each target (horizontal lines at target level)
+                sortedTargets.forEach((target: any, index: number) => {
+                    const color = targetTypeColors(target.targetType) as string;
+                    
+                    // Check if this target is superseded by a later target of the same type
+                    const sameTypeTargets = targetsByType[target.targetType] || [];
+                    const targetIndex = sameTypeTargets.findIndex((t: any) => 
+                        t.decisionYear === target.decisionYear && t.targetValue === target.targetValue
+                    );
+                    const nextTarget = targetIndex >= 0 && targetIndex < sameTypeTargets.length - 1 
+                        ? sameTypeTargets[targetIndex + 1] 
+                        : null;
+                    
+                    // If there's a next target announced before this one's deadline, end the line there
+                    const endYear = (nextTarget && nextTarget.decisionYear < target.targetYear) 
+                        ? nextTarget.decisionYear 
+                        : target.targetYear;
+                    
+                    // Draw horizontal line from decision year to end year at the target value level
+                    const lineTooltipText = `${target.targetValue}% target from ${target.decisionYear} to ${endYear}${endYear !== target.targetYear ? ` (superseded, original deadline: ${target.targetYear})` : ''}`;
+                    g.append('line')
+                        .attr('class', `target-line target-type-${target.targetType.replace(/[^a-zA-Z0-9]/g, '-')}`)
+                        .attr('data-target-type', target.targetType)
+                        .attr('x1', xScale(target.decisionYear))
+                        .attr('x2', xScale(endYear))
+                        .attr('y1', yScale(target.targetValue))
+                        .attr('y2', yScale(target.targetValue))
+                        .style('stroke', color)
+                        .style('stroke-width', 3)
+                        .style('opacity', shouldBeVisible(target.targetType) ? 0.8 : 0)
+                        .style('pointer-events', shouldBeVisible(target.targetType) ? 'auto' : 'none')
+                        .style('cursor', 'pointer')
+                        .on('mouseenter', function(event: any) {
+                            const [mouseX, mouseY] = d3.pointer(event, targetsContainer);
+                            tooltip
+                                .style('visibility', 'visible')
+                                .html(lineTooltipText.replace(/\n/g, '<br/>'))
+                                .style('top', (mouseY + 10) + 'px')
+                                .style('left', (mouseX + 10) + 'px');
+                        })
+                        .on('mousemove', function(event: any) {
+                            const [mouseX, mouseY] = d3.pointer(event, targetsContainer);
+                            tooltip
+                                .style('top', (mouseY + 10) + 'px')
+                                .style('left', (mouseX + 10) + 'px');
+                        })
+                        .on('mouseleave', function() {
+                            tooltip.style('visibility', 'hidden');
+                        });
+                    
+                    // Draw start point (decision year) - when target was announced
+                    g.append('circle')
+                        .attr('class', `target-circle target-type-${target.targetType.replace(/[^a-zA-Z0-9]/g, '-')}`)
+                        .attr('data-target-type', target.targetType)
+                        .attr('cx', xScale(target.decisionYear))
+                        .attr('cy', yScale(target.targetValue))
                         .attr('r', 5)
-                        .attr('fill', globalTechColorScale(d.type) as string)
-                        .style('stroke', 'rgba(255,255,255,0.9)')
-                        .style('stroke-width', 1);
-                    row.append('text')
-                        .attr('x', 18)
-                        .attr('y', 6)
+                        .style('fill', color)
+                        .style('stroke', '#fff')
+                        .style('stroke-width', 2)
+                        .style('opacity', shouldBeVisible(target.targetType) ? 1 : 0)
+                        .style('pointer-events', shouldBeVisible(target.targetType) ? 'auto' : 'none')
+                        .style('cursor', 'pointer')
+                        .on('mouseenter', function(event: any) {
+                            d3.select(this).transition().duration(100).attr('r', 7);
+                            const [mouseX, mouseY] = d3.pointer(event, targetsContainer);
+                            tooltip
+                                .style('visibility', 'visible')
+                                .html(`Decision: ${target.decisionYear}<br/>Target: ${target.targetValue}% by ${target.targetYear}`)
+                                .style('top', (mouseY + 10) + 'px')
+                                .style('left', (mouseX + 10) + 'px');
+                        })
+                        .on('mousemove', function(event: any) {
+                            const [mouseX, mouseY] = d3.pointer(event, targetsContainer);
+                            tooltip
+                                .style('top', (mouseY + 10) + 'px')
+                                .style('left', (mouseX + 10) + 'px');
+                        })
+                        .on('mouseleave', function() {
+                            d3.select(this).transition().duration(100).attr('r', 5);
+                            tooltip.style('visibility', 'hidden');
+                        });
+                    
+                    // Draw end point (at endYear, which might be earlier if superseded)
+                    const endTooltipText = endYear === target.targetYear 
+                        ? `Target deadline: ${target.targetYear}<br/>Target: ${target.targetValue}%`
+                        : `Superseded in ${endYear}<br/>Original deadline: ${target.targetYear}<br/>Target: ${target.targetValue}%`;
+                    g.append('circle')
+                        .attr('class', `target-circle target-type-${target.targetType.replace(/[^a-zA-Z0-9]/g, '-')}`)
+                        .attr('data-target-type', target.targetType)
+                        .attr('cx', xScale(endYear))
+                        .attr('cy', yScale(target.targetValue))
+                        .attr('r', 6)
+                        .style('fill', color)
+                        .style('stroke', '#fff')
+                        .style('stroke-width', 2)
+                        .style('opacity', shouldBeVisible(target.targetType) ? 1 : 0)
+                        .style('pointer-events', shouldBeVisible(target.targetType) ? 'auto' : 'none')
+                        .style('cursor', 'pointer')
+                        .on('mouseenter', function(event: any) {
+                            d3.select(this).transition().duration(100).attr('r', 8);
+                            const [mouseX, mouseY] = d3.pointer(event, targetsContainer);
+                            tooltip
+                                .style('visibility', 'visible')
+                                .html(endTooltipText)
+                                .style('top', (mouseY + 10) + 'px')
+                                .style('left', (mouseX + 10) + 'px');
+                        })
+                        .on('mousemove', function(event: any) {
+                            const [mouseX, mouseY] = d3.pointer(event, targetsContainer);
+                            tooltip
+                                .style('top', (mouseY + 10) + 'px')
+                                .style('left', (mouseX + 10) + 'px');
+                        })
+                        .on('mouseleave', function() {
+                            d3.select(this).transition().duration(100).attr('r', 6);
+                            tooltip.style('visibility', 'hidden');
+                        });
+                    
+                    // Add label at end point with target value
+                    g.append('text')
+                        .attr('class', `target-label target-type-${target.targetType.replace(/[^a-zA-Z0-9]/g, '-')}`)
+                        .attr('data-target-type', target.targetType)
+                        .attr('x', xScale(endYear) + 10)
+                        .attr('y', yScale(target.targetValue))
+                        .attr('dy', '0.35em')
+                        .style('font-size', '10px')
+                        .style('font-weight', '600')
+                        .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
+                        .style('fill', color)
+                        .style('opacity', shouldBeVisible(target.targetType) ? 1 : 0)
+                        .style('pointer-events', shouldBeVisible(target.targetType) ? 'auto' : 'none')
+                        .text(`${target.targetValue}%`);
+                });
+                
+                // Legend with interactive filtering
+                const legend = svg.append('g')
+                    .attr('transform', `translate(${margin.left + 10}, ${margin.top + 10})`);
+                
+                const uniqueTargetTypes = allTargetTypes;
+                
+                // Track which target types are visible (only Electricity visible by default)
+                const visibleTargetTypes = initiallyVisibleTypes;
+                
+                uniqueTargetTypes.forEach((targetType: any, i: number) => {
+                    const isInitiallyVisible = visibleTargetTypes.has(targetType);
+                    
+                    const legendRow = legend.append('g')
+                        .attr('transform', `translate(0, ${i * 22})`)
+                        .style('cursor', 'pointer')
+                        .attr('class', 'legend-item')
+                        .attr('data-target-type', targetType);
+                    
+                    // Add background rect for better click area and hover effect
+                    const bgRect = legendRow.append('rect')
+                        .attr('x', -5)
+                        .attr('y', -10)
+                        .attr('width', 180)
+                        .attr('height', 20)
+                        .attr('rx', 4)
+                        .style('fill', 'transparent')
+                        .style('transition', 'all 0.2s ease');
+                    
+                    const legendLine = legendRow.append('line')
+                        .attr('x1', 0)
+                        .attr('x2', 20)
+                        .attr('y1', 0)
+                        .attr('y2', 0)
+                        .style('stroke', targetTypeColors(targetType) as string)
+                        .style('stroke-width', 3)
+                        .style('opacity', isInitiallyVisible ? '1' : '0.3')
+                        .style('transition', 'opacity 0.3s ease');
+                    
+                    const legendText = legendRow.append('text')
+                        .attr('x', 25)
+                        .attr('y', 0)
                         .attr('dy', '0.35em')
                         .style('font-size', '11px')
-                        .style('font-weight', '500')
+                        .style('font-weight', isInitiallyVisible ? '500' : '400')
                         .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
                         .style('fill', '#334155')
-                        .text(formatPolicyLabel(String(d.type)));
+                        .style('opacity', isInitiallyVisible ? '1' : '0.4')
+                        .style('text-decoration', isInitiallyVisible ? 'none' : 'line-through')
+                        .style('transition', 'all 0.3s ease')
+                        .text(getTargetTypeDisplayName(String(targetType)));
+                    
+                    // Hover effects
+                    legendRow
+                        .on('mouseenter', function() {
+                            if (visibleTargetTypes.has(targetType)) {
+                                bgRect.style('fill', '#f1f5f9');
+                                legendText.style('font-weight', '600');
+                            }
+                        })
+                        .on('mouseleave', function() {
+                            bgRect.style('fill', 'transparent');
+                            if (visibleTargetTypes.has(targetType)) {
+                                legendText.style('font-weight', '500');
+                            }
+                        })
+                        .on('click', function() {
+                            // Toggle visibility
+                            if (visibleTargetTypes.has(targetType)) {
+                                visibleTargetTypes.delete(targetType);
+                                legendLine.style('opacity', '0.3');
+                                legendText
+                                    .style('opacity', '0.4')
+                                    .style('text-decoration', 'line-through')
+                                    .style('font-weight', '400');
+                            } else {
+                                visibleTargetTypes.add(targetType);
+                                legendLine.style('opacity', '1');
+                                legendText
+                                    .style('opacity', '1')
+                                    .style('text-decoration', 'none')
+                                    .style('font-weight', '500');
+                            }
+                            
+                            // Update chart visibility
+                            updateChartVisibility();
+                        });
                 });
+                
+                // Function to update chart elements visibility based on selected target types
+                function updateChartVisibility() {
+                    // Update all lines (both horizontal and dashed connection lines)
+                    g.selectAll('.target-line').each(function() {
+                        const line = d3.select(this);
+                        const targetType = line.attr('data-target-type');
+                        const isVisible = visibleTargetTypes.has(targetType);
+                        const isDashed = line.style('stroke-dasharray') !== 'none';
+                        
+                        line.transition()
+                            .duration(300)
+                            .style('opacity', isVisible ? (isDashed ? '0.6' : '0.8') : '0')
+                            .style('pointer-events', isVisible ? 'auto' : 'none');
+                    });
+                    
+                    // Update circles - keep radius constant to preserve tooltips
+                    g.selectAll('.target-circle').each(function() {
+                        const circle = d3.select(this);
+                        const targetType = circle.attr('data-target-type');
+                        const isVisible = visibleTargetTypes.has(targetType);
+                        
+                        circle.transition()
+                            .duration(300)
+                            .style('opacity', isVisible ? '1' : '0')
+                            .style('pointer-events', isVisible ? 'auto' : 'none');
+                    });
+                    
+                    // Update labels
+                    g.selectAll('.target-label').each(function() {
+                        const text = d3.select(this);
+                        const targetType = text.attr('data-target-type');
+                        const isVisible = visibleTargetTypes.has(targetType);
+                        
+                        text.transition()
+                            .duration(300)
+                            .style('opacity', isVisible ? '1' : '0')
+                            .style('pointer-events', isVisible ? 'auto' : 'none');
+                    });
+                }
+                
+                // Add instruction text
+                legend.append('text')
+                    .attr('x', 0)
+                    .attr('y', uniqueTargetTypes.length * 22 + 10)
+                    .style('font-size', '9px')
+                    .style('font-style', 'italic')
+                    .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
+                    .style('fill', '#94a3b8')
+                    .text('Click to show/hide target types');
+            } else if (targetsContainer) {
+                // Show message when no targets data is available
+                targetsContainer.innerHTML = `
+                    <div style="display:flex;align-items:center;justify-content:center;height:100%;">
+                        <div style="text-align:center;color:#64748b;padding:20px;">
+                            <div style="font-size:14px;font-weight:600;margin-bottom:4px;">No Targets Data</div>
+                            <div style="font-size:12px;">No renewable energy targets found for ${countryName}</div>
+                        </div>
+                    </div>`;
             }
 
             // Time series chart: row-per-policy type (non-stacked)
@@ -1910,6 +2335,15 @@ Promise.all([
                     .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
                     .style('fill', '#475569')
                     .text('Year');
+            } else if (tsContainer) {
+                // Show message when no policy time series data is available
+                tsContainer.innerHTML = `
+                    <div style="display:flex;align-items:center;justify-content:center;height:100%;">
+                        <div style="text-align:center;color:#64748b;padding:20px;">
+                            <div style="font-size:14px;font-weight:600;margin-bottom:4px;">No Policy Timeline Data</div>
+                            <div style="font-size:12px;">No policy time series found for ${countryName}</div>
+                        </div>
+                    </div>`;
             }
         });
     }
