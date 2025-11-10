@@ -5,8 +5,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:docs": "BUILD_OUT_DIR=docs vite build",
+    "build:dist": "BUILD_OUT_DIR=dist vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && gh-pages -d docs",
+    "preview:docs": "vite preview --outDir docs --port 4173",
+    "preview:dist": "vite preview --outDir dist --port 4174",
+    "deploy": "npm run build:docs && gh-pages -d docs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

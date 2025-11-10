@@ -122,6 +122,8 @@ function createFullScreenPieChart(pieData: any[], countryName: string, globalCol
         const container = document.getElementById('fullscreen-pie-chart');
         if (!container) return;
 
+        // Allow positioned overlays inside the container
+        (container as HTMLElement).style.position = 'relative';
         const containerRect = container.getBoundingClientRect();
         // Fully responsive sizing based on container dimensions
         const isSmallScreen = containerRect.width < 768;
@@ -196,7 +198,14 @@ function createFullScreenPieChart(pieData: any[], countryName: string, globalCol
             .attr('d', arc)
             .attr('fill', d => globalColorScale(d.data.type) as string)
             .attr('stroke', 'white')
-            .attr('stroke-width', 3);
+            .attr('stroke-width', 3)
+            .style('cursor', 'pointer')
+            .on('mouseover', function() {
+                d3.select(this).style('filter', 'brightness(1.08)');
+            })
+            .on('mouseout', function() {
+                d3.select(this).style('filter', null);
+            });
 
         // Add labels
         const labelFontSize = isSmallScreen ? '12px' : '16px';
@@ -256,6 +265,31 @@ function createFullScreenPieChart(pieData: any[], countryName: string, globalCol
                 .style('text-overflow', 'ellipsis')
                 .text(`${d.type}: ${d.count}`);
         });
+
+        // Interaction hint overlay for discoverability
+        const hint = d3.select(container)
+            .append('div')
+            .attr('class', 'chart-interaction-hint')
+            .style('position', 'absolute')
+            .style('top', '12px')
+            .style('left', '12px')
+            .style('z-index', '50')
+            .style('padding', '8px 12px')
+            .style('border-radius', '8px')
+            .style('background', 'rgba(31,41,55,0.9)')
+            .style('color', '#fff')
+            .style('font-size', '12px')
+            .style('box-shadow', '0 4px 10px rgba(0,0,0,0.15)')
+            .style('transition', 'opacity 300ms ease')
+            .style('opacity', '0.95')
+            .text('Tip: Hover over segments or click for details.');
+
+        const hideHint = () => {
+            hint.style('opacity', '0');
+            setTimeout(() => hint.remove(), 350);
+        };
+        setTimeout(hideHint, 4500);
+        (container as HTMLElement).addEventListener('mouseenter', hideHint, { once: true });
     }, 100); // 100ms delay to ensure modal is rendered
 }
 
@@ -278,6 +312,8 @@ function createFullScreenTimeSeriesChart(timeSeriesChartData: any[], countryName
     setTimeout(() => {
         const container = document.getElementById('fullscreen-timeseries-chart');
         if (!container) return;
+        // Allow positioned overlays inside the container
+        (container as HTMLElement).style.position = 'relative';
 
         const containerRect = container.getBoundingClientRect();
         // Responsive margins for smaller screens
@@ -437,6 +473,31 @@ function createFullScreenTimeSeriesChart(timeSeriesChartData: any[], countryName
             .style('font-size', axisLabelFontSize)
             .style('font-weight', 'bold')
             .text('Year');
+        
+        // Interaction hint overlay for discoverability
+        const hint = d3.select(container)
+            .append('div')
+            .attr('class', 'chart-interaction-hint')
+            .style('position', 'absolute')
+            .style('top', '12px')
+            .style('left', '12px')
+            .style('z-index', '50')
+            .style('padding', '8px 12px')
+            .style('border-radius', '8px')
+            .style('background', 'rgba(31,41,55,0.9)')
+            .style('color', '#fff')
+            .style('font-size', '12px')
+            .style('box-shadow', '0 4px 10px rgba(0,0,0,0.15)')
+            .style('transition', 'opacity 300ms ease')
+            .style('opacity', '0.95')
+            .text('Tip: Hover over bars or click for details.');
+
+        const hideHint = () => {
+            hint.style('opacity', '0');
+            setTimeout(() => hint.remove(), 350);
+        };
+        setTimeout(hideHint, 4500);
+        (container as HTMLElement).addEventListener('mouseenter', hideHint, { once: true });
     }, 100); // 100ms delay to ensure modal is rendered
 }
 
@@ -1499,6 +1560,9 @@ Promise.all([
     // Assign the function to the global variable for use in event handlers
     updateMapFunction = updateMap;
 
+    // Show dashboard interaction hints only once (first country click)
+    let hasShownDashboardHints = false;
+
     // Render a country dashboard in the modal with pie and time series charts
     function createCountryDashboardModal(countryCode3: string, countryName: string) {
         const modalContent = document.getElementById('modal-content');
@@ -1701,6 +1765,33 @@ Promise.all([
                 };
                 updateLayout();
                 window.addEventListener('resize', updateLayout, { once: true });
+
+                // Show a single centered interaction note only on the first country click
+                if (!hasShownDashboardHints) {
+                    (layout as HTMLElement).style.position = 'relative';
+                    d3.select(layout)
+                        .append('div')
+                        .attr('class', 'chart-interaction-hint')
+                        .style('position', 'absolute')
+                        .style('top', '50%')
+                        .style('left', '50%')
+                        .style('transform', 'translate(-50%, -50%)')
+                        .style('z-index', '60')
+                        .style('padding', '10px 14px')
+                        .style('border-radius', '10px')
+                        .style('background', 'rgba(31,41,55,0.6)')
+                        .style('color', '#fff')
+                        .style('font-size', '13px')
+                        .style('box-shadow', '0 4px 10px rgba(0,0,0,0.15)')
+                        .style('pointer-events', 'none')
+                        .style('opacity', '0.95')
+                        .text('These graphs are interactive. Click to see details.')
+                        .transition()
+                        .delay(3500)
+                        .duration(500)
+                        .style('opacity', '0');
+                    hasShownDashboardHints = true;
+                }
             }
 
             // Targets Progression Chart: Show how RE targets have evolved over time
@@ -1712,6 +1803,8 @@ Promise.all([
             console.log(`Country ${countryName} has ${countryTargets.length} total targets`);
             
             if (targetsContainer && countryTargets.length > 0) {
+                // Allow positioned overlays inside the container
+                (targetsContainer as HTMLElement).style.position = 'relative';
                 const rect = targetsContainer.getBoundingClientRect();
                 const margin = { top: 40, right: 60, bottom: 60, left: 60 };
                 const width = rect.width - margin.left - margin.right;
@@ -2177,6 +2270,8 @@ Promise.all([
                     .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
                     .style('fill', '#94a3b8')
                     .text('Click to show/hide target types');
+
+                // Removed per-chart overlay in favor of single dashboard overlay
             } else if (targetsContainer) {
                 // Show message when no targets data is available
                 targetsContainer.innerHTML = `
@@ -2192,6 +2287,8 @@ Promise.all([
             const tsContainer = document.getElementById('dashboard-timeseries');
             const countryTime = timeSeriesData[countryCode3];
             if (tsContainer && countryTime) {
+                // Allow positioned overlays inside the container
+                (tsContainer as HTMLElement).style.position = 'relative';
                 const allYears = Object.keys(countryTime).map(Number).sort();
                 const yearly: { [year: number]: { [measure: string]: number } } = {};
                 const types = new Set<string>();
@@ -2231,6 +2328,8 @@ Promise.all([
                     .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
                     .style('fill', '#334155')
                     .text('Policy Timeline by Type');
+
+                // Removed per-chart overlay; handled at dashboard container level
                 const x = d3.scaleBand().domain(years.map(String)).range([0, width]).padding(0.06);
                 // Compute frequency of each policy type across selected years
                 const policyFreq: Record<string, number> = {};

@@ -7,8 +7,8 @@ export default defineConfig({
   plugins: [react()],
   base: './',
   build: {
-    // Output to 'docs' so GitHub Pages can serve directly from main/docs
-    outDir: 'docs',
+    // Output directory can be configured via env (default 'docs')
+    outDir: process.env.BUILD_OUT_DIR || 'docs',
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
