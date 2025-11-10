@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && gh-pages -d dist",
+    "deploy": "npm run build && gh-pages -d docs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

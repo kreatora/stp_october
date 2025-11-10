@@ -559,16 +559,16 @@ function getTargetTypeDisplayName(targetType: string): string {
     const normalizedType = targetType.trim();
     
     const displayNameMap: { [key: string]: string } = {
-        'Electricity': 'Share of Renewables on Electricity Production',
-        'electricity': 'Share of Renewables on Electricity Production',
-        'Final energy': 'Share of Renewables on Final Energy Consumption',
-        'Primary energy': 'Share of Renewables on Primary Energy Consumption',
-        'Heating and cooling': 'Share of Renewables on Heating and Cooling',
-        'Transport': 'Share of Electric Vehicles on Transportation',
-        'Transportation': 'Share of Electric Vehicles on Transportation',
-        'transport': 'Share of Electric Vehicles on Transportation',
-        'transportation': 'Share of Electric Vehicles on Transportation',
-        'EV': 'Share of Electric Vehicles on Transportation'
+        'Electricity': 'Renewable Electricity Target',
+        'electricity': 'Renewable Electricity Target',
+        'Final energy': 'Renewable Final Energy Target',
+        'Primary energy': 'Renewable Primary Energy Target',
+        'Heating and cooling': 'Renewable Heating And Cooling Target',
+        'Transport': 'Renewable Transportation Target',
+        'Transportation': 'Renewable Transportation Target',
+        'transport': 'Renewable Transportation Target',
+        'transportation': 'Renewable Transportation Target',
+        'EV': 'Renewable Transportation Target'
     };
     
     return displayNameMap[normalizedType] || targetType;
@@ -1364,7 +1364,7 @@ Promise.all([
                 if (currentClimateTargetYearGroup === 'latest') {
                     // Show the most recent target (by decision year)
                     const latestTarget = targets.sort((a: any, b: any) => b.yearDecision - a.yearDecision)[0];
-                    return `<strong>${countryName}</strong><br/>Climate Target: ${latestTarget.targetValue}% by ${latestTarget.yearTarget}<br/>Decision Year: ${latestTarget.yearDecision}`;
+                    return `<strong>${countryName}</strong><br/>Emission Target: ${latestTarget.targetValue}% by ${latestTarget.yearTarget}<br/>Decision Year: ${latestTarget.yearDecision}`;
                 }
                 
                 // Year group filtering - show target matching the selected year group
@@ -1375,12 +1375,12 @@ Promise.all([
                 
                 if (matchingTargets.length > 0) {
                     const latestMatchingTarget = matchingTargets.sort((a: any, b: any) => b.yearDecision - a.yearDecision)[0];
-                    return `<strong>${countryName}</strong><br/>Climate Target: ${latestMatchingTarget.targetValue}% by ${latestMatchingTarget.yearTarget}<br/>Decision Year: ${latestMatchingTarget.yearDecision}`;
+                    return `<strong>${countryName}</strong><br/>Emission Target: ${latestMatchingTarget.targetValue}% by ${latestMatchingTarget.yearTarget}<br/>Decision Year: ${latestMatchingTarget.yearDecision}`;
                 } else {
-                    return `<strong>${countryName}</strong><br/>No climate target data for ${currentClimateTargetYearGroup}`;
+                    return `<strong>${countryName}</strong><br/>No emission target data for ${currentClimateTargetYearGroup}`;
                 }
             } else {
-                return `<strong>${countryName}</strong><br/>No climate target data`;
+                return `<strong>${countryName}</strong><br/>No emission target data`;
             }
         } else if (currentMapType === 'ev') {
             return `<strong>${countryName}</strong><br/>EV data coming soon`;
@@ -1553,8 +1553,22 @@ Promise.all([
         // Toolbar + layout container
         modalContent.innerHTML = `
             <div id="dashboard-toolbar" style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:8px;">
-                <button id="download-country-policies" style="padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; background:#ffffff; color:#334155; font-weight:600; cursor:pointer;">
-                    Download policies (.xlsx)
+                <button id="download-country-data" aria-label="Download data" title="Download data for ${countryName}" style="padding:8px 12px; border:1px solid #cbd5e1; border-radius:10px; background:#ffffff; color:#1f2937; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 1px 2px rgba(0,0,0,0.06);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M12 3v10" stroke="#1f2937" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M8 9l4 4 4-4" stroke="#1f2937" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M4 17a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2H4v-2z" stroke="#1f2937" stroke-width="2" fill="none" stroke-linejoin="round"/>
+                    </svg>
+                    <span style="font-size:13px; color:#374151;">Download Data for ${countryName}</span>
+                </button>
+                <button id="download-all-data" aria-label="Download full data" title="Download full dataset (all countries)" style="padding:8px 12px; border:1px solid #cbd5e1; border-radius:10px; background:#ffffff; color:#1f2937; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 1px 2px rgba(0,0,0,0.06);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="14" rx="2" ry="2" stroke="#1f2937" stroke-width="2" fill="none"/>
+                        <path d="M8 8h8" stroke="#1f2937" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M8 12h8" stroke="#1f2937" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M8 16h5" stroke="#1f2937" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span style="font-size:13px; color:#374151;">Download Full Dataset (.xlsx)</span>
                 </button>
             </div>
             <div id="dashboard-top" style="display:flex; gap:16px; width:100%; height:100%; flex-direction:row;">
@@ -1562,44 +1576,115 @@ Promise.all([
                 <div id="dashboard-timeseries" style="flex:1; min-height:300px; background:#f8fafc; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);"></div>
             </div>
         `;
-        // Hook export button
-        const btnExport = document.getElementById('download-country-policies');
+
+        // Hook data export button (include all columns, filtered by country)
+        const btnExport = document.getElementById('download-country-data');
         if (btnExport) {
+            (btnExport as HTMLButtonElement).title = `Download data for ${countryName}`;
+            // Subtle hover/focus effects for better affordance
+            btnExport.addEventListener('mouseover', () => {
+                const el = btnExport as HTMLButtonElement;
+                el.style.background = '#f1f5f9';
+                el.style.borderColor = '#94a3b8';
+                el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
+            });
+            btnExport.addEventListener('mouseout', () => {
+                const el = btnExport as HTMLButtonElement;
+                el.style.background = '#ffffff';
+                el.style.borderColor = '#cbd5e1';
+                el.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
+            });
+            btnExport.addEventListener('focus', () => {
+                const el = btnExport as HTMLButtonElement;
+                el.style.outline = '2px solid #93c5fd';
+                el.style.outlineOffset = '2px';
+            });
+            btnExport.addEventListener('blur', () => {
+                const el = btnExport as HTMLButtonElement;
+                el.style.outline = 'none';
+            });
             btnExport.addEventListener('click', () => {
-                // Build dataset for selected country (policies only)
-                const rows = policyCsv.filter((row: any) => {
+                const wb = XLSX.utils.book_new();
+
+                // Policies (filtered by selected country using name -> ISO3 map)
+                const rowsPolicies = policyCsv.filter((row: any) => {
                     const cName = row.country;
                     if (!cName) return false;
                     const code3 = countryNameMap[cName] || null;
                     return code3 === countryCode3;
                 });
+                const headersPolicies = (policyCsv.columns && policyCsv.columns.length > 0)
+                    ? policyCsv.columns
+                    : Array.from(new Set(rowsPolicies.flatMap((r: any) => Object.keys(r))));
+                const wsPolicies = XLSX.utils.json_to_sheet(rowsPolicies, { header: headersPolicies });
+                XLSX.utils.book_append_sheet(wb, wsPolicies, 'Policies');
 
-                // Project to curated columns if present
-                const preferCols = [
-                    'country',
-                    'measure',
-                    'Technology_type',
-                    'year',
-                    policyChangedDetailColumnName || 'policy_changed_detail',
-                    'level_1',
-                    'level_1_currency',
-                    'level_1_percent_type_detail',
-                    'level_1_unit'
-                ].filter(Boolean) as string[];
-
-                const useCols = preferCols.filter(col => rows.length === 0 || rows.some((r: any) => r[col] !== undefined));
-                const dataOut = rows.map((r: any) => {
-                    const obj: any = {};
-                    useCols.forEach(col => { obj[col] = r[col] ?? ''; });
-                    return obj;
+                // Targets (filtered by ISO3 at first column or explicit Country_code)
+                const rowsTargets = targetsCsv.filter((row: any) => {
+                    const code = row.Country_code || row[Object.keys(row)[0]];
+                    return code === countryCode3;
                 });
+                const headersTargets = (targetsCsv.columns && targetsCsv.columns.length > 0)
+                    ? targetsCsv.columns
+                    : Array.from(new Set(rowsTargets.flatMap((r: any) => Object.keys(r))));
+                const wsTargets = XLSX.utils.json_to_sheet(rowsTargets, { header: headersTargets });
+                XLSX.utils.book_append_sheet(wb, wsTargets, 'Targets');
 
-                // Create workbook and sheet
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.json_to_sheet(dataOut);
-                XLSX.utils.book_append_sheet(wb, ws, 'Policies');
+                // Climate Targets (filtered by ISO3 at first column or explicit Country_code)
+                const rowsClimate = climateTargetsCsv.filter((row: any) => {
+                    const code = row.Country_code || row[Object.keys(row)[0]];
+                    return code === countryCode3;
+                });
+                const headersClimate = (climateTargetsCsv.columns && climateTargetsCsv.columns.length > 0)
+                    ? climateTargetsCsv.columns
+                    : Array.from(new Set(rowsClimate.flatMap((r: any) => Object.keys(r))));
+                const wsClimate = XLSX.utils.json_to_sheet(rowsClimate, { header: headersClimate });
+                XLSX.utils.book_append_sheet(wb, wsClimate, 'ClimateTargets');
+
                 const safeName = countryName.replace(/[^\w\-]+/g, '_');
-                XLSX.writeFile(wb, `${safeName}_policies.xlsx`);
+                XLSX.writeFile(wb, `${safeName}_data.xlsx`);
+            });
+        }
+
+        const btnExportAll = document.getElementById('download-all-data');
+        if (btnExportAll) {
+            (btnExportAll as HTMLButtonElement).addEventListener('mouseover', () => {
+                const el = btnExportAll as HTMLButtonElement;
+                el.style.background = '#f1f5f9';
+                el.style.borderColor = '#94a3b8';
+                el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)';
+            });
+            (btnExportAll as HTMLButtonElement).addEventListener('mouseout', () => {
+                const el = btnExportAll as HTMLButtonElement;
+                el.style.background = '#ffffff';
+                el.style.borderColor = '#cbd5e1';
+                el.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
+            });
+            (btnExportAll as HTMLButtonElement).addEventListener('focus', () => {
+                const el = btnExportAll as HTMLButtonElement;
+                el.style.outline = '2px solid #93c5fd';
+                el.style.outlineOffset = '2px';
+            });
+            (btnExportAll as HTMLButtonElement).addEventListener('blur', () => {
+                const el = btnExportAll as HTMLButtonElement;
+                el.style.outline = 'none';
+            });
+            (btnExportAll as HTMLButtonElement).addEventListener('click', () => {
+                const wb = XLSX.utils.book_new();
+
+                const addSheet = (name: string, rows: any[]) => {
+                    const headers = (rows && (rows as any).columns && (rows as any).columns.length > 0)
+                        ? (rows as any).columns
+                        : Array.from(new Set(rows.flatMap((r: any) => Object.keys(r))));
+                    const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
+                    XLSX.utils.book_append_sheet(wb, ws, name);
+                };
+
+                addSheet('Policies', policyCsv as any);
+                addSheet('Targets', targetsCsv as any);
+                addSheet('ClimateTargets', climateTargetsCsv as any);
+
+                XLSX.writeFile(wb, `All_sheets.xlsx`);
             });
         }
         // Open the modal before measuring sizes to ensure containers have dimensions
