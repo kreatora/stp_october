@@ -2362,6 +2362,9 @@ Promise.all([
                     sortedPolicyTypes.forEach(m => { if (yearly[y][m]) cells.push({ year: y, measure: m }); });
                 });
 
+                // Track the currently open popup to enable toggle-close behavior
+                let currentPopupKey: string | null = null;
+
                 // Policy detail popup
                 function showPolicyDetailPopup(measure: string, year: number, rows: any[]) {
                     const parent = document.getElementById('modal-content');
@@ -2402,7 +2405,11 @@ Promise.all([
                     close.style.border = 'none';
                     close.style.background = 'none';
                     close.style.cursor = 'pointer';
-                    close.onclick = () => box.remove();
+                    close.onclick = () => {
+                        box.remove();
+                        // Clear any active popup key when closing via the close button
+                        try { (currentPopupKey as any) = null; } catch {}
+                    };
                     title.appendChild(close);
                     box.appendChild(title);
                     const list = document.createElement('div');
@@ -2420,8 +2427,12 @@ Promise.all([
                             item.style.background = '#f9fafb';
                             item.style.border = '1px solid #e5e7eb';
                             const f = (name: string) => r[name] ?? '';
+                            const titleVal = f('level_1') || '';
+                            const titleHtml = titleVal
+                                ? titleVal
+                                : `detail not available<span style="font-size:${isNarrow ? '10px' : '11px'}; color:#94a3b8; margin-left:6px;"> · see dataset</span>`;
                             item.innerHTML = `
-                                <div style="font-weight:600; color:#374151; font-size:${isNarrow ? '13px' : '14px'};">${f('level_1') || '(no title)'}</div>
+                                <div style="font-weight:600; color:#374151; font-size:${isNarrow ? '13px' : '14px'};">${titleHtml}</div>
                                 <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Tech: ${f('Technology_type') || '-'}</div>
                                 <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Currency: ${f('level_1_currency') || '-'}</div>
                                 <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Percent Detail: ${f('level_1_percent_type_detail') || '-'}</div>
@@ -2431,6 +2442,11 @@ Promise.all([
                         });
                     }
                     box.appendChild(list);
+                    // Allow closing the popup by clicking anywhere on the panel
+                    box.addEventListener('click', () => {
+                        box.remove();
+                        try { (currentPopupKey as any) = null; } catch {}
+                    });
                     parent.appendChild(box);
                 }
 
@@ -2451,6 +2467,14 @@ Promise.all([
                     .on('click', function(event, d: any) {
                         const measure = d.measure as string;
                         const year = Number(d.year);
+                        const key = `${measure}-${year}`;
+                        // If the same cell is clicked again and a popup exists, close it instead of reopening
+                        const existingPopup = document.querySelector('.policy-detail-popup') as HTMLElement | null;
+                        if (existingPopup && currentPopupKey === key) {
+                            existingPopup.remove();
+                            currentPopupKey = null;
+                            return;
+                        }
                         const rows = policyCsv.filter((row: any) => {
                             const cName = row.country;
                             const m = row.measure || 'Unknown';
@@ -2464,6 +2488,7 @@ Promise.all([
                             return !deactivatedBeforeOrInSelected;
                         });
                         showPolicyDetailPopup(measure, year, rows);
+                        currentPopupKey = key;
                     })
                     .on('mouseover', function() {
                         d3.select(this)
