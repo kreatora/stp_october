@@ -78,11 +78,14 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.18), inset 0 2px 6px rgba(0,0,0,0.08);
             -webkit-backdrop-filter: blur(10px);
                     backdrop-filter: blur(10px);
+            opacity: 0.88; /* slightly transparent when not hovered */
         }
         
         .toggle-switch:hover {
-            box-shadow: 0 6px 25px rgba(0,0,0,0.12), inset 0 2px 4px rgba(0,0,0,0.1), 0 0 0 4px rgba(30, 41, 59, 0.1);
+            /* Remove hover ring/overlay; keep subtle elevation and full opacity */
+            box-shadow: 0 6px 25px rgba(0,0,0,0.12), inset 0 2px 4px rgba(0,0,0,0.1);
             transform: translateY(-1px);
+            opacity: 1;
         }
         
         /* Toggle Switch Slider */
@@ -112,15 +115,16 @@
             top: 50%;
             transform: translateY(-50%);
             font-weight: 700;
-            font-size: 10px;
-            letter-spacing: 0.3px;
+            /* Scale text slightly with viewport while keeping bounds */
+            font-size: clamp(10px, 1.6vw, 12px);
+            letter-spacing: 0.2px;
             transition: all 0.3s ease;
             cursor: pointer;
             -webkit-user-select: none;
                -moz-user-select: none;
                     user-select: none;
             z-index: 10;
-            padding: 6px 8px;
+            padding: 5px 7px;
             border-radius: 12px;
             min-width: 60px;
             text-align: center;
@@ -128,7 +132,8 @@
         }
         
         .toggle-option:hover {
-            background: rgba(255, 255, 255, 0.15);
+            /* Remove white overlay on hover */
+            background: transparent;
             transform: translate(-50%, -50%) scale(1.05);
         }
         
@@ -252,10 +257,11 @@
         }
         
         .targets-submenu.visible {
-            opacity: 1;
+            opacity: 0.92; /* slightly transparent when not hovered */
             visibility: visible;
             transform: translateY(0) scale(1);
         }
+        .targets-submenu.visible:hover { opacity: 1; }
         
         .submenu-header {
             display: flex;
@@ -392,10 +398,11 @@
         }
         
         .climate-targets-submenu.visible {
-            opacity: 1;
+            opacity: 0.92; /* slightly transparent when not hovered */
             visibility: visible;
             transform: translateY(0) scale(1);
         }
+        .climate-targets-submenu.visible:hover { opacity: 1; }
         
         .submenu-option {
             display: block;

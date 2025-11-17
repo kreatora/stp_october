@@ -1539,7 +1539,8 @@ Promise.all([
     }
 
     // Function to update map visualization
-    function updateMap() {
+    // pass skipZoom=true to avoid resetting zoom (used for intra-mode filter changes)
+    function updateMap(skipZoom: boolean = false) {
         g.selectAll("path")
             .transition()
             .duration(500)
@@ -1548,8 +1549,10 @@ Promise.all([
         // Update legend colors
         updateLegendColors(currentMapType);
         
-        // Update map zoom
-        updateMapZoom(currentMapType);
+        // Update map zoom unless explicitly skipped
+        if (!skipZoom) {
+            updateMapZoom(currentMapType);
+        }
         
         // Initialize submenu if switching to targets
         if (currentMapType === 'targets') {
@@ -1557,8 +1560,9 @@ Promise.all([
         }
     }
     
-    // Assign the function to the global variable for use in event handlers
-    updateMapFunction = updateMap;
+    // Assign wrapper for intra-mode changes to avoid zoom reset
+    // Submenu interactions call updateMapFunction(); main mode switches call updateMap() directly
+    updateMapFunction = () => updateMap(true);
 
     // Show dashboard interaction hints only once (first country click)
     let hasShownDashboardHints = false;
@@ -1764,7 +1768,8 @@ Promise.all([
                     layout.style.flexDirection = w < 768 ? 'column' : 'row';
                 };
                 updateLayout();
-                window.addEventListener('resize', updateLayout, { once: true });
+                // Continuously adapt layout on resize while modal is open
+                window.addEventListener('resize', updateLayout);
 
                 // Show a single centered interaction note only on the first country click
                 if (!hasShownDashboardHints) {
@@ -2182,7 +2187,16 @@ Promise.all([
                         .style('opacity', isInitiallyVisible ? '1' : '0.4')
                         .style('text-decoration', isInitiallyVisible ? 'none' : 'line-through')
                         .style('transition', 'all 0.3s ease')
-                        .text(getTargetTypeDisplayName(String(targetType)));
+                        .text(() => {
+                            const full = getTargetTypeDisplayName(String(targetType));
+                            const base = full
+                                .replace(/^Renewable\s+/i, '')
+                                .replace(/\s*Target$/i, '');
+                            // Shorten long labels
+                            return base
+                                .replace(/\bHeating And Cooling\b/i, 'Heating & Cooling')
+                                .replace(/\bTransportation\b/i, 'Transport');
+                        });
                     
                     // Hover effects
                     legendRow
@@ -2397,7 +2411,17 @@ Promise.all([
                     title.style.justifyContent = 'space-between';
                     title.style.alignItems = 'center';
                     title.style.marginBottom = '8px';
-                    title.innerHTML = `<span style="font-weight:600; color:#111827; font-size:${isNarrow ? '14px' : '16px'};">${countryName} — ${measure} (${year})</span>`;
+                    // Format measure for display: Title Case by default; if exactly FIT/TGC, use all caps
+                    function formatPolicyTypeDisplay(m: string): string {
+                        const mm = (m || '').trim();
+                        if (!mm) return '';
+                        const lower = mm.toLowerCase();
+                        if (lower === 'fit') return 'FIT';
+                        if (lower === 'tgc') return 'TGC';
+                        return mm.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+                    }
+                    const formattedMeasure = formatPolicyTypeDisplay(measure);
+                    title.innerHTML = `<span style="font-weight:600; color:#111827; font-size:${isNarrow ? '14px' : '16px'};">${countryName} — ${formattedMeasure} (${year})</span>`;
                     const close = document.createElement('button');
                     close.textContent = '×';
                     close.style.fontSize = '18px';
@@ -2989,18 +3013,23 @@ Promise.all([
         const climateSubmenu = document.getElementById('climateTargetsSubmenu') as HTMLElement | null;
         if (!container || !toggle) return;
         const rect = container.getBoundingClientRect();
-        // Target ~12% of map width for 4 options with longer text; clamp for usability
-        const targetWidth = Math.round(rect.width * 0.12);
-        const width = Math.max(340, Math.min(520, targetWidth));
-        const height = Math.max(42, Math.min(72, Math.round(width * 0.15))); // keep aspect ratio
+        // Target ~36% of map width for 4 options; clamp for usability
+        const targetWidth = Math.round(rect.width * 0.36);
+        // Provide wider desktop sizing while keeping mobile constraints
+        const width = Math.max(400, Math.min(760, targetWidth));
+        // Make the toggle less tall relative to width
+        const height = Math.max(40, Math.min(64, Math.round(width * 0.12)));
         toggle.style.width = `${width}px`;
         toggle.style.height = `${height}px`;
+        // Keep pill shape consistent with height
+        const pillRadius = Math.round(height / 2);
+        toggle.style.borderRadius = `${pillRadius}px`;
         if (submenu) {
-            const submenuWidth = Math.max(380, width);
+            const submenuWidth = Math.max(400, width);
             submenu.style.width = `${submenuWidth}px`;
         }
         if (climateSubmenu) {
-            const climateSubmenuWidth = Math.max(380, width);
+            const climateSubmenuWidth = Math.max(400, width);
             climateSubmenu.style.width = `${climateSubmenuWidth}px`;
         }
     }
