@@ -36,41 +36,6 @@
             margin-bottom: 1.5rem;
             display: inline-block;
         }
-        .wind-turbine {
-            position: absolute;
-            left: 10vw;
-            top: 25vh;
-            width: 8vw;
-            height: 8vw;
-            z-index: 10;
-        }
-        .wind-turbine-bottom {
-            position: absolute;
-            right: 20px;
-            bottom: 20px;
-            transform: rotate(-5deg);
-            width: 120px;
-            height: 120px;
-            z-index: 10;
-        }
-        .solar-panel-right-bottom {
-            position: absolute;
-            right: 10vw;
-            bottom: 15vh;
-            transform: rotate(8deg);
-            width: 8vw;
-            height: 8vw;
-            z-index: 10;
-        }
-        .solar-panel-right-top {
-            position: absolute;
-            right: 20px;
-            top: 20px;
-            transform: rotate(-12deg);
-            width: 120px;
-            height: 120px;
-            z-index: 10;
-        }
     </style>
   <script type="module" crossorigin src="./assets/main.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/input.js">
@@ -80,8 +45,11 @@
 <body class="bg-stone-800 text-neutral-700 font-serif">
     <header class="text-white">
         <div class="bg-[rgb(42,58,42)] py-6">
-            <div class="container mx-auto text-center">
-                <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-custom">Climate Policy Atlas</h1>
+            <div class="container mx-auto flex items-center justify-center gap-5">
+                <a href="index.html" class="inline-flex items-center gap-4">
+            <img src="images/CLIMATE POLICY ATLAS LOGO-Photoroom.png" alt="Climate Policy Atlas Logo" class="h-14 md:h-16 w-auto" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));">
+                    <span class="text-3xl md:text-4xl font-bold tracking-tight text-custom">Climate Policy Atlas</span>
+                </a>
             </div>
         </div>
         <div class="nav-custom py-4">
@@ -105,8 +73,9 @@
                 <p class="text-lg mb-6 text-neutral-700">We are pleased to present our Renewable Energy (RE) Policy Ontology, developed as a contribution to the NFDI4Energy project. Our primary aim was to create a structured, semantic framework that enhances the understanding, comparison, and analysis of diverse renewable energy policies, making complex information more accessible and interoperable.</p>
             </div>
 
-            <div class="mb-8 flex justify-center">
+            <div class="mb-8 flex justify-center items-center gap-6">
                 <img src="images/nfdi4energy_logo_cut.png" alt="NFDI4Energy Logo" style="width: 150px; height: auto;">
+                <img src="images/CLIMATE POLICY ATLAS LOGO-Photoroom.png" alt="Climate Policy Atlas Logo" style="width: 150px; height: auto;">
             </div>
 
             <!-- React mounting point for index page -->
@@ -114,17 +83,9 @@
 
         </section>
 
-        <!-- Wind Turbine Image -->
-        <div class="wind-turbine">
-            <img src="images/windturbine.png" alt="Wind Turbine" style="width: 100%; height: 100%; object-fit: contain;">
-        </div>
-
-        <!-- Solar Panel - Right Bottom -->
-        <div class="solar-panel-right-bottom">
-            <img src="images/solarpanel.png" alt="Solar Panel" style="width: 100%; height: 100%; object-fit: contain;">
-        </div>
+        <!-- Decorative images removed per request -->
     </main>
 
 
 </body>
-</html> 
+</html>
