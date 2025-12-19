@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import './ontologyvisualization.css';
 
 interface OntologyDataNode {
@@ -37,8 +37,17 @@ const CARD_WIDTH = 220;
 const CARD_HEIGHT = 130;
 const CHILD_X_SPACING = 300;
 const CHILD_Y_SPACING = 180;
+const TRANSITION_MS = 900;
 
 const OntologyVisualization: React.FC = () => {
+  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'tableInteractive'>('tree');
+  const [tableQuery, setTableQuery] = useState('');
+  const [pdfAvailable, setPdfAvailable] = useState<boolean | null>(null);
+  const [interactiveExpandedIds, setInteractiveExpandedIds] = useState<Set<string>>(new Set());
+  const [interactiveAnimateIds, setInteractiveAnimateIds] = useState<Set<string>>(new Set());
+  const [interactiveExpandedDefinitionIds, setInteractiveExpandedDefinitionIds] = useState<Set<string>>(new Set());
+  const [interactiveDefinitionOverflowIds, setInteractiveDefinitionOverflowIds] = useState<Set<string>>(new Set());
+
   const [nodes, setNodes] = useState<OntologyNode[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [scale, setScale] = useState(0.6);
@@ -53,6 +62,8 @@ const OntologyVisualization: React.FC = () => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const visualizationContainerRef = useRef<HTMLDivElement>(null);
   const nodeCounterRef = useRef(0);
+  const transitionTokenRef = useRef(0);
+  const transitionTimeoutRef = useRef<number | null>(null);
 
   const updateTransform = useCallback(() => {
     if (visualizationContainerRef.current) {
@@ -67,6 +78,46 @@ const OntologyVisualization: React.FC = () => {
   useEffect(() => {
     updateTransform();
   }, [updateTransform]);
+
+  const pdfUrl = useMemo(() => `${import.meta.env.BASE_URL}ontology_interactive.pdf`, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(pdfUrl, { method: 'HEAD' });
+        if (!cancelled) setPdfAvailable(res.ok);
+      } catch {
+        if (!cancelled) setPdfAvailable(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pdfUrl]);
+
+  const handleDownloadPdf = useCallback(async () => {
+    // If we already know it's missing, avoid a noisy 404 navigation.
+    if (pdfAvailable === false) {
+      window.alert('PDF not available yet. Drop the file in /public as ontology.pdf and it will enable automatically.');
+      return;
+    }
+    try {
+      const res = await fetch(pdfUrl, { method: 'HEAD' });
+      if (!res.ok) throw new Error('PDF missing');
+      setPdfAvailable(true);
+
+      const a = document.createElement('a');
+      a.href = pdfUrl;
+      a.download = 'ontology_interactive.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch {
+      setPdfAvailable(false);
+      window.alert('PDF not available yet. Drop the file in /public as ontology.pdf and it will enable automatically.');
+    }
+  }, [pdfAvailable, pdfUrl]);
 
   const centerOnNodes = useCallback((targetNodes: OntologyNode[], newScale?: number) => {
     if (!targetNodes || targetNodes.length === 0 || !viewportRef.current) return;
@@ -99,18 +150,39 @@ const OntologyVisualization: React.FC = () => {
 
     const calculatedScale = newScale ?? Math.min(Math.min(viewportWidth / areaWidth, viewportHeight / areaHeight) * 0.95, 1.5); // Slightly increased multiplier
     
-    setScale(calculatedScale);
-    setOffsetX((viewportWidth / 2) - (areaCenterX * calculatedScale));
-    setOffsetY((viewportHeight / 2) - (areaCenterY * calculatedScale));
+    // Prepare a smooth transition. Multiple calls to centerOnNodes can overlap (e.g. visibility updates + centering),
+    // so we use a token to ensure old cleanups don't cancel the current animation mid-flight.
+    const container = visualizationContainerRef.current;
+    const myToken = ++transitionTokenRef.current;
+    if (container) {
+      container.style.transition = `transform ${TRANSITION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`;
 
-    if (visualizationContainerRef.current) {
-      visualizationContainerRef.current.style.transition = 'transform 0.5s ease-out';
-      setTimeout(() => {
+      if (transitionTimeoutRef.current != null) {
+        window.clearTimeout(transitionTimeoutRef.current);
+        transitionTimeoutRef.current = null;
+      }
+
+      const cleanup = () => {
+        if (transitionTokenRef.current !== myToken) return;
         if (visualizationContainerRef.current) {
           visualizationContainerRef.current.style.transition = 'none';
         }
-      }, 500);
+      };
+
+      // Prefer transitionend (more accurate than timers), but keep a timer as a fallback.
+      const onEnd = (ev: TransitionEvent) => {
+        if (ev.propertyName !== 'transform') return;
+        cleanup();
+      };
+      container.addEventListener('transitionend', onEnd, { once: true });
+      transitionTimeoutRef.current = window.setTimeout(() => {
+        cleanup();
+      }, TRANSITION_MS + 50);
     }
+
+    setScale(calculatedScale);
+    setOffsetX((viewportWidth / 2) - (areaCenterX * calculatedScale));
+    setOffsetY((viewportHeight / 2) - (areaCenterY * calculatedScale));
   }, [setScale, setOffsetX, setOffsetY]);
 
 
@@ -421,32 +493,287 @@ const OntologyVisualization: React.FC = () => {
   }, [offsetX, offsetY, scale]);
 
   useEffect(() => {
+    // Only attach wheel-zoom when in Tree view.
+    // Otherwise the preventDefault() blocks scrolling inside table views.
+    if (viewMode !== 'tree') return;
     const viewport = viewportRef.current;
-    if (viewport) {
-      viewport.addEventListener('wheel', handleWheelZoom, { passive: false });
-    }
+    if (!viewport) return;
+    viewport.addEventListener('wheel', handleWheelZoom, { passive: false });
     return () => {
-      if (viewport) {
-        viewport.removeEventListener('wheel', handleWheelZoom);
-      }
+      viewport.removeEventListener('wheel', handleWheelZoom);
     };
-  }, [handleWheelZoom]);
+  }, [handleWheelZoom, viewMode]);
   
   const handleResetZoom = useCallback(() => {
-    const rootNode = nodes.find(n => n.isRoot);
-    if (rootNode) {
-      console.log("Resetting zoom to root:", rootNode); // DEBUG
-      setCurrentlyZoomedNodeId(null);
-      setNodes(prevNodes => prevNodes.map(n => ({
-          ...n,
-          visible: true, // All nodes remain visible on reset
-          collapsed: n.isRoot ? false : true, // Root is not collapsed, others are
-          hiddenByCollapse: false // Ensure no nodes are hidden by collapse on reset
-      })));
-      // Let centerOnNodes calculate the scale for reset too
-      centerOnNodes([rootNode]); 
+    setCurrentlyZoomedNodeId(null);
+    setSelectedNode(null);
+
+    setNodes(prevNodes => {
+      const rootNode = prevNodes.find(n => n.isRoot);
+      if (!rootNode) return prevNodes;
+
+      // Return to the initial state: only root visible; everything collapsed.
+      const resetNodes = prevNodes.map(n => ({
+        ...n,
+        visible: !!n.isRoot,
+        collapsed: true,
+        hiddenByCollapse: false,
+      }));
+
+      // Re-center after state update flushes.
+      setTimeout(() => centerOnNodes([rootNode]), 0);
+      return resetNodes;
+    });
+  }, [centerOnNodes]);
+
+  // Returning to Tree view should always reset to the starting point (clean slate).
+  const prevViewModeRef = useRef(viewMode);
+  useEffect(() => {
+    const prev = prevViewModeRef.current;
+    if (viewMode === 'tree' && prev !== 'tree') {
+      handleResetZoom();
     }
-  }, [nodes, centerOnNodes, setNodes]);
+    prevViewModeRef.current = viewMode;
+  }, [viewMode, handleResetZoom]);
+
+  type OntologyTableRow = {
+    node: OntologyNode;
+    parentName: string;
+    path: string;
+  };
+
+  const tableRows = useMemo<OntologyTableRow[]>(() => {
+    if (!nodes || nodes.length === 0) return [];
+    const nodeById = new Map(nodes.map(n => [n.id, n]));
+
+    const getPath = (n: OntologyNode) => {
+      const parts: string[] = [];
+      const seen = new Set<string>();
+      let cur: OntologyNode | undefined = n;
+      while (cur) {
+        if (seen.has(cur.id)) break;
+        seen.add(cur.id);
+        parts.push(cur.name);
+        cur = cur.parentId ? nodeById.get(cur.parentId) : undefined;
+      }
+      return parts.reverse().join(' › ');
+    };
+
+    return nodes
+      .map(n => {
+        const parentName = n.parentId ? (nodeById.get(n.parentId)?.name ?? '—') : '—';
+        return { node: n, parentName, path: getPath(n) };
+      })
+      .sort((a, b) => a.path.localeCompare(b.path));
+  }, [nodes]);
+
+  const filteredTableRows = useMemo(() => {
+    const q = tableQuery.trim().toLowerCase();
+    if (!q) return tableRows;
+    return tableRows.filter(r => {
+      const name = r.node.name?.toLowerCase() ?? '';
+      const def = r.node.definition?.toLowerCase() ?? '';
+      const path = r.path.toLowerCase();
+      return name.includes(q) || def.includes(q) || path.includes(q);
+    });
+  }, [tableQuery, tableRows]);
+
+  // Detect overlapping cards in Tree view to reduce visual clutter.
+  const overlappingTreeNodeIds = useMemo(() => {
+    if (viewMode !== 'tree') return new Set<string>();
+    const visible = nodes.filter(n => n.visible);
+    const overlaps = new Set<string>();
+    const w = CARD_WIDTH;
+    const h = CARD_HEIGHT; // approximate; cards can be taller, but this works well enough visually
+
+    for (let i = 0; i < visible.length; i++) {
+      const a = visible[i];
+      const ax1 = a.x, ay1 = a.y, ax2 = a.x + w, ay2 = a.y + h;
+      for (let j = i + 1; j < visible.length; j++) {
+        const b = visible[j];
+        const bx1 = b.x, by1 = b.y, bx2 = b.x + w, by2 = b.y + h;
+        const intersects = ax1 < bx2 && ax2 > bx1 && ay1 < by2 && ay2 > by1;
+        if (intersects) {
+          overlaps.add(a.id);
+          overlaps.add(b.id);
+        }
+      }
+    }
+    return overlaps;
+  }, [nodes, viewMode]);
+
+  type InteractiveRow = {
+    node: OntologyNode;
+    parentName: string;
+    path: string;
+    depth: number;
+    hasChildren: boolean;
+  };
+
+  const nodeById = useMemo(() => new Map(nodes.map(n => [n.id, n])), [nodes]);
+
+  const childrenByParentId = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const n of nodes) {
+      if (!n.parentId) continue;
+      const key = n.parentId;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(n.id);
+    }
+    // Stable ordering for interactive table
+    for (const [pid, ids] of map.entries()) {
+      ids.sort((a, b) => (nodeById.get(a)?.name ?? '').localeCompare(nodeById.get(b)?.name ?? ''));
+      map.set(pid, ids);
+    }
+    return map;
+  }, [nodes, nodeById]);
+
+  // Initialize interactive expanded state to show the root(s) by default.
+  useEffect(() => {
+    if (!nodes.length) return;
+    setInteractiveExpandedIds(prev => {
+      if (prev.size > 0) return prev;
+      const next = new Set<string>();
+      for (const n of nodes) {
+        if (n.isRoot) next.add(n.id);
+      }
+      return next;
+    });
+  }, [nodes]);
+
+  const toggleInteractiveExpanded = useCallback((id: string) => {
+    setInteractiveExpandedIds(prev => {
+      const next = new Set(prev);
+      const wasExpanded = next.has(id);
+      if (wasExpanded) next.delete(id);
+      else next.add(id);
+
+      // Subtle "content slides in" effect when expanding: animate the direct children rows.
+      if (!wasExpanded) {
+        const children = childrenByParentId.get(id) ?? [];
+        if (children.length) {
+          setInteractiveAnimateIds(new Set(children));
+          window.setTimeout(() => setInteractiveAnimateIds(new Set()), 180);
+        }
+      }
+      return next;
+    });
+  }, [childrenByParentId]);
+
+  const toggleInteractiveDefinition = useCallback((id: string) => {
+    setInteractiveExpandedDefinitionIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const interactiveDefinitionElByIdRef = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  const setAllInteractiveExpanded = useCallback((expanded: boolean) => {
+    if (!expanded) {
+      setInteractiveExpandedIds(new Set(nodes.filter(n => n.isRoot).map(n => n.id)));
+      return;
+    }
+    setInteractiveExpandedIds(new Set(nodes.map(n => n.id)));
+  }, [nodes]);
+
+  const interactiveVisibleIdSet = useMemo(() => {
+    const q = tableQuery.trim().toLowerCase();
+    if (!q) return null;
+    const matches = new Set<string>();
+    for (const n of nodes) {
+      const name = n.name?.toLowerCase() ?? '';
+      const def = n.definition?.toLowerCase() ?? '';
+      if (name.includes(q) || def.includes(q)) matches.add(n.id);
+    }
+    // Include ancestors for context
+    const include = new Set<string>();
+    for (const id of matches) {
+      let cur = nodeById.get(id);
+      while (cur) {
+        if (include.has(cur.id)) break;
+        include.add(cur.id);
+        cur = cur.parentId ? nodeById.get(cur.parentId) : undefined;
+      }
+    }
+    return include;
+  }, [nodes, nodeById, tableQuery]);
+
+  const interactiveRows = useMemo<InteractiveRow[]>(() => {
+    if (!nodes.length) return [];
+
+    const roots = nodes
+      .filter(n => n.isRoot || !n.parentId)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const rows: InteractiveRow[] = [];
+    const stack: Array<{ id: string; depth: number }> = roots.map(r => ({ id: r.id, depth: 0 })).reverse();
+
+    while (stack.length) {
+      const { id, depth } = stack.pop()!;
+      const node = nodeById.get(id);
+      if (!node) continue;
+
+      if (interactiveVisibleIdSet && !interactiveVisibleIdSet.has(id)) {
+        // Skip completely if not in filtered set
+        continue;
+      }
+
+      const parentName = node.parentId ? (nodeById.get(node.parentId)?.name ?? '—') : '—';
+      const hasChildren = (childrenByParentId.get(node.id)?.length ?? 0) > 0;
+
+      // Compute path from existing precomputed tableRows if possible; otherwise derive quickly.
+      const pathParts: string[] = [];
+      let cur: OntologyNode | undefined = node;
+      const seen = new Set<string>();
+      while (cur) {
+        if (seen.has(cur.id)) break;
+        seen.add(cur.id);
+        pathParts.push(cur.name);
+        cur = cur.parentId ? nodeById.get(cur.parentId) : undefined;
+      }
+      const path = pathParts.reverse().join(' › ');
+
+      rows.push({ node, parentName, path, depth, hasChildren });
+
+      const shouldExpand =
+        hasChildren &&
+        (interactiveVisibleIdSet
+          ? true // when searching, always expand through context
+          : interactiveExpandedIds.has(node.id));
+
+      if (shouldExpand) {
+        const children = childrenByParentId.get(node.id) ?? [];
+        for (let i = children.length - 1; i >= 0; i--) {
+          stack.push({ id: children[i], depth: depth + 1 });
+        }
+      }
+    }
+
+    return rows;
+  }, [nodes, nodeById, childrenByParentId, interactiveExpandedIds, interactiveVisibleIdSet]);
+
+  useEffect(() => {
+    if (viewMode !== 'tableInteractive') return;
+
+    // Measure whether the definition is visually clamped (i.e. content overflows the 2-line clamp).
+    // This avoids showing "More" for short strings that just happen to exceed a char threshold,
+    // and correctly shows "More" for shorter strings that wrap into more than 2 lines on narrow screens.
+    const raf = window.requestAnimationFrame(() => {
+      const next = new Set<string>();
+      for (const r of interactiveRows) {
+        const el = interactiveDefinitionElByIdRef.current.get(r.node.id);
+        if (!el) continue;
+        // scrollHeight > clientHeight indicates there is hidden/clamped content.
+        if (el.scrollHeight > el.clientHeight + 1) next.add(r.node.id);
+      }
+      setInteractiveDefinitionOverflowIds(next);
+    });
+
+    return () => window.cancelAnimationFrame(raf);
+  }, [interactiveRows, viewMode]);
 
 
   return (
@@ -455,48 +782,269 @@ const OntologyVisualization: React.FC = () => {
       ref={viewportRef}
       onMouseDown={handleMouseDown}
     >
-      <div
-        className="visualization-container"
-        ref={visualizationContainerRef}
-      >
-        {nodes.filter(node => node.visible).map(node => (
-          <div
-            key={node.id}
-            className={`card ${node.isRoot ? 'root-card' : ''} ${node.collapsed ? 'collapsed' : ''} ${selectedNode?.id === node.id ? 'selected' : ''}`}
-            style={{ left: `${node.x}px`, top: `${node.y}px` }}
-            onClick={(e) => { e.stopPropagation(); handleNodeClick(node.id);}}
-            data-id={node.id} // For potential debugging or direct DOM selection if ever needed
-            data-level={node.level}
-            data-parent-id={node.parentId}
+      <div className="ontology-toolbar" role="toolbar" aria-label="Ontology controls">
+        <div className="view-toggle" role="tablist" aria-label="Switch view">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === 'tree'}
+            className={`view-toggle-button ${viewMode === 'tree' ? 'active' : ''}`}
+            onClick={() => setViewMode('tree')}
           >
-            <div className="card-name">{node.name}</div>
-            {(node.children && node.children.length > 0) && (
-              <div className="expand-icon"></div>
-            )}
+            Tree view
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === 'table'}
+            className={`view-toggle-button ${viewMode === 'table' ? 'active' : ''}`}
+            onClick={() => setViewMode('table')}
+          >
+            Table (static)
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === 'tableInteractive'}
+            className={`view-toggle-button ${viewMode === 'tableInteractive' ? 'active' : ''}`}
+            onClick={() => setViewMode('tableInteractive')}
+          >
+            Table (interactive)
+          </button>
+        </div>
+
+        <div className="toolbar-right">
+          <div className="pdf-cta">
+            <span className="pdf-cta-text">Download ontology as PDF</span>
+            <button
+              type="button"
+              className={`pdf-button ${pdfAvailable === false ? 'disabled' : ''}`}
+              onClick={handleDownloadPdf}
+              disabled={pdfAvailable === false}
+              title={pdfAvailable === false ? 'PDF not uploaded yet' : 'Download ontology as PDF'}
+            >
+              PDF
+            </button>
           </div>
-        ))}
-        {connections.map(conn => (
-          <div
-            key={conn.id}
-            className={`connection-line connection-line-level-${conn.level}`}
-            style={{
-              width: `${Math.sqrt(Math.pow(conn.x2 - conn.x1, 2) + Math.pow(conn.y2 - conn.y1, 2))}px`,
-              left: `${conn.x1}px`,
-              top: `${conn.y1}px`,
-              transform: `rotate(${Math.atan2(conn.y2 - conn.y1, conn.x2 - conn.x1) * 180 / Math.PI}deg)`
-            }}
-          ></div>
-        ))}
-      </div>
-      <div className="zoom-controls">
-        {/* Zoom buttons are hidden by CSS but logic could be re-enabled if needed */}
-        {/* <button className="zoom-button" onClick={() => setScale(s => Math.min(s * 1.1, 1.5))}>+</button> */}
-        {/* <button className="zoom-button" onClick={() => setScale(s => Math.max(s / 1.1, 0.3))}>-</button> */}
-        <button className="reset-button" onClick={handleResetZoom}>Reset</button>
-        {/* <div className="zoom-level" id="zoom-level-display">{Math.round(scale * 100)}%</div> */}
+        </div>
       </div>
 
-      {selectedNode && (
+      {viewMode === 'tree' ? (
+        <>
+          <div
+            className="visualization-container"
+            ref={visualizationContainerRef}
+          >
+            {nodes.filter(node => node.visible).map(node => (
+              <div
+                key={node.id}
+                className={`card ${node.isRoot ? 'root-card' : ''} ${node.collapsed ? 'collapsed' : ''} ${selectedNode?.id === node.id ? 'selected' : ''} ${overlappingTreeNodeIds.has(node.id) ? 'overlapping' : ''}`}
+                style={{ left: `${node.x}px`, top: `${node.y}px` }}
+                onClick={(e) => { e.stopPropagation(); handleNodeClick(node.id);}}
+                data-id={node.id} // For potential debugging or direct DOM selection if ever needed
+                data-level={node.level}
+                data-parent-id={node.parentId}
+              >
+                <div className="card-name">{node.name}</div>
+                {(node.children && node.children.length > 0) && (
+                  <div className="expand-icon"></div>
+                )}
+              </div>
+            ))}
+            {connections.map(conn => (
+              <div
+                key={conn.id}
+                className={`connection-line connection-line-level-${conn.level}`}
+                style={{
+                  width: `${Math.sqrt(Math.pow(conn.x2 - conn.x1, 2) + Math.pow(conn.y2 - conn.y1, 2))}px`,
+                  left: `${conn.x1}px`,
+                  top: `${conn.y1}px`,
+                  transform: `rotate(${Math.atan2(conn.y2 - conn.y1, conn.x2 - conn.x1) * 180 / Math.PI}deg)`
+                }}
+              ></div>
+            ))}
+          </div>
+
+          <div className="zoom-controls">
+            <button className="reset-button" onClick={handleResetZoom}>Reset</button>
+          </div>
+        </>
+      ) : viewMode === 'table' ? (
+        <div className="ontology-table-wrap" role="region" aria-label="Ontology table">
+          <div className="ontology-table-controls">
+            <div className="ontology-search">
+              <label className="ontology-search-label" htmlFor="ontology-search-input">Search</label>
+              <input
+                id="ontology-search-input"
+                className="ontology-search-input"
+                value={tableQuery}
+                onChange={(e) => setTableQuery(e.target.value)}
+                placeholder="Search concepts, definitions, paths…"
+              />
+            </div>
+            <div className="ontology-table-meta">
+              {filteredTableRows.length.toLocaleString()} / {tableRows.length.toLocaleString()} concepts
+            </div>
+          </div>
+
+          <div className="ontology-table-card">
+            <table className="ontology-table">
+              <thead>
+                <tr>
+                  <th>Concept</th>
+                  <th>Parent</th>
+                  <th>Level</th>
+                  <th>Definition</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTableRows.map(r => (
+                  <tr
+                    key={r.node.id}
+                    className={selectedNode?.id === r.node.id ? 'selected' : ''}
+                    onClick={() => setSelectedNode(r.node)}
+                  >
+                    <td>
+                      <div className="ontology-table-concept">
+                        <div className="ontology-table-name">{r.node.name}</div>
+                        <div className="ontology-table-path">{r.path}</div>
+                      </div>
+                    </td>
+                    <td className="ontology-table-parent">{r.parentName}</td>
+                    <td className="ontology-table-level">{r.node.level}</td>
+                    <td>
+                      <div className="ontology-table-definition">
+                        {r.node.definition}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredTableRows.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="ontology-table-empty">
+                      No results. Try a different search query.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="ontology-table-wrap" role="region" aria-label="Interactive ontology table">
+          <div className="ontology-table-controls">
+            <div className="ontology-search">
+              <label className="ontology-search-label" htmlFor="ontology-search-input">Search</label>
+              <input
+                id="ontology-search-input"
+                className="ontology-search-input"
+                value={tableQuery}
+                onChange={(e) => setTableQuery(e.target.value)}
+                placeholder="Search concepts, definitions…"
+              />
+            </div>
+            <div className="ontology-table-actions">
+              <button type="button" className="ontology-mini-button" onClick={() => setAllInteractiveExpanded(true)}>
+                Expand all
+              </button>
+              <button type="button" className="ontology-mini-button" onClick={() => setAllInteractiveExpanded(false)}>
+                Collapse all
+              </button>
+            </div>
+            <div className="ontology-table-meta">
+              {interactiveRows.length.toLocaleString()} concepts
+            </div>
+          </div>
+
+          <div className="ontology-table-card">
+            <table className="ontology-table ontology-table-interactive">
+              <thead>
+                <tr>
+                  <th>Concept</th>
+                  <th>Parent</th>
+                  <th>Level</th>
+                  <th>Definition</th>
+                </tr>
+              </thead>
+              <tbody>
+                {interactiveRows.map(r => (
+                  <tr
+                    key={r.node.id}
+                    className={[
+                      selectedNode?.id === r.node.id ? 'selected' : '',
+                      interactiveAnimateIds.has(r.node.id) ? 'just-revealed' : '',
+                    ].filter(Boolean).join(' ')}
+                    onClick={() => setSelectedNode(r.node)}
+                  >
+                    <td>
+                      <div className="ontology-interactive-cell">
+                        {r.depth > 0 ? (
+                          <span
+                            className="ontology-indent-guides"
+                            style={{ width: `${r.depth * 18}px` }}
+                            aria-hidden="true"
+                          />
+                        ) : null}
+                        {r.hasChildren ? (
+                          <button
+                            type="button"
+                            className="ontology-disclosure"
+                            aria-label={interactiveExpandedIds.has(r.node.id) ? 'Collapse' : 'Expand'}
+                            aria-expanded={interactiveExpandedIds.has(r.node.id)}
+                            onClick={(e) => { e.stopPropagation(); toggleInteractiveExpanded(r.node.id); }}
+                          >
+                            {interactiveVisibleIdSet ? '▾' : (interactiveExpandedIds.has(r.node.id) ? '▾' : '▸')}
+                          </button>
+                        ) : (
+                          <span className="ontology-disclosure-spacer" aria-hidden="true"></span>
+                        )}
+                        <div className="ontology-table-concept">
+                          <div className="ontology-table-name">{r.node.name}</div>
+                          <div className="ontology-table-path">{r.path}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="ontology-table-parent">{r.parentName}</td>
+                    <td className="ontology-table-level">{r.node.level}</td>
+                    <td>
+                      <div className="ontology-definition-cell">
+                        <div
+                          ref={(el) => {
+                            const map = interactiveDefinitionElByIdRef.current;
+                            if (el) map.set(r.node.id, el);
+                            else map.delete(r.node.id);
+                          }}
+                          className={`ontology-table-definition ${interactiveExpandedDefinitionIds.has(r.node.id) ? 'expanded' : ''}`}
+                        >
+                          {r.node.definition}
+                        </div>
+                        {(interactiveExpandedDefinitionIds.has(r.node.id) || interactiveDefinitionOverflowIds.has(r.node.id)) ? (
+                          <button
+                            type="button"
+                            className="ontology-more-button"
+                            onClick={(e) => { e.stopPropagation(); toggleInteractiveDefinition(r.node.id); }}
+                          >
+                            {interactiveExpandedDefinitionIds.has(r.node.id) ? 'Less' : 'More'}
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {interactiveRows.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="ontology-table-empty">
+                      No results. Try a different search query.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {viewMode === 'tree' && selectedNode && (
         <div className="definition-panel">
           <h3 className="panel-title">{selectedNode.name}</h3>
           <p className="panel-definition">{selectedNode.definition}</p>

@@ -35,6 +35,381 @@
     top: 0;
 }
 
+.ontology-toolbar {
+    /* Remove the "top bar" look: keep the middle fully transparent.
+       Only the left and right control groups get their own small backplates. */
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    pointer-events: none; /* allow panning/zooming through empty area */
+}
+
+.card.overlapping {
+    opacity: 0.82;
+}
+
+.card.overlapping:hover,
+.card.selected {
+    opacity: 1;
+}
+
+.view-toggle {
+    display: inline-flex;
+    border: 1px solid #90a090;
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 1px 10px rgba(0,0,0,0.10);
+    pointer-events: auto;
+}
+
+.view-toggle-button {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: #1A3A1A;
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.view-toggle-button:hover {
+    background: rgba(42, 58, 42, 0.08);
+}
+
+.view-toggle-button.active {
+    background: rgb(50, 70, 53);
+    color: oklch(0.99 0.02 97.77);
+}
+
+.toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: auto;
+}
+
+.pdf-cta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid #90a090;
+    border-radius: 12px;
+    padding: 6px 8px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 1px 10px rgba(0,0,0,0.10);
+}
+
+.pdf-cta-text {
+    font-size: 13px;
+    color: #1A3A1A;
+    opacity: 0.9;
+    white-space: nowrap;
+}
+
+.pdf-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid #90a090;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    background-color: #e0e8e0;
+    color: #1A3A1A;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.pdf-button:hover {
+    background-color: #c8d0c8;
+    border-color: #7a8a7a;
+}
+
+.pdf-button.disabled,
+.pdf-button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.ontology-table-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    /* Leave room for the overlay controls at the top */
+    padding: 72px 12px 12px;
+}
+
+.ontology-table-controls {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.ontology-table-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.ontology-mini-button {
+    border-radius: 10px;
+    border: 1px solid #90a090;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    background-color: rgba(255, 255, 255, 0.75);
+    color: #1A3A1A;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.ontology-mini-button:hover {
+    background-color: rgba(216, 224, 216, 0.9);
+    border-color: #7a8a7a;
+}
+
+.ontology-interactive-cell {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding-left: 8px;
+}
+
+.ontology-indent-guides {
+    align-self: stretch;
+    flex: 0 0 auto;
+    border-radius: 6px;
+    background-image: repeating-linear-gradient(
+        to right,
+        rgba(42, 58, 42, 0.16) 0px,
+        rgba(42, 58, 42, 0.16) 1px,
+        transparent 1px,
+        transparent 18px
+    );
+    opacity: 0.7;
+}
+
+.ontology-disclosure {
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid rgba(176, 192, 176, 0.95);
+    background: rgba(216, 224, 216, 0.75);
+    color: #1A3A1A;
+    cursor: pointer;
+    margin-top: 2px;
+}
+
+.ontology-disclosure:hover {
+    background: rgba(216, 224, 216, 0.98);
+}
+
+.ontology-disclosure-spacer {
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
+}
+
+.ontology-search {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 260px;
+    flex: 1 1 360px;
+}
+
+.ontology-search-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1A3A1A;
+    opacity: 0.9;
+}
+
+.ontology-search-input {
+    width: 100%;
+    border: 1px solid #B0C0B0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    background: rgba(255, 255, 255, 0.85);
+    color: #1A3A1A;
+    outline: none;
+}
+
+.ontology-search-input:focus {
+    border-color: #7a8a7a;
+    box-shadow: 0 0 0 3px rgba(100, 140, 88, 0.22);
+}
+
+.ontology-table-meta {
+    font-size: 12px;
+    color: #2A3A2A;
+    opacity: 0.9;
+    white-space: nowrap;
+}
+
+.ontology-table-card {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid #B0C0B0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+}
+
+.ontology-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.ontology-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #1A3A1A;
+    background: rgba(216, 224, 216, 0.96);
+    border-bottom: 1px solid #B0C0B0;
+    padding: 10px 12px;
+}
+
+.ontology-table tbody td {
+    padding: 12px;
+    border-bottom: 1px solid rgba(176, 192, 176, 0.65);
+    vertical-align: top;
+    color: #1A3A1A;
+    font-size: 13px;
+}
+
+.ontology-table tbody tr:hover {
+    background: rgba(42, 58, 42, 0.05);
+}
+
+.ontology-table tbody tr.selected {
+    background: rgba(100, 140, 88, 0.14);
+}
+
+.ontology-table-interactive tbody tr:nth-child(even) {
+    background: rgba(216, 224, 216, 0.22);
+}
+
+.ontology-table tbody tr.just-revealed td {
+    animation: ontologyRowReveal 180ms ease-out both;
+}
+
+@keyframes ontologyRowReveal {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ontology-table-empty {
+    text-align: center;
+    padding: 20px 12px;
+    color: #2A3A2A;
+    opacity: 0.85;
+}
+
+.ontology-table-concept {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ontology-table-name {
+    font-weight: 800;
+    font-size: 14px;
+    color: #1A3A1A;
+}
+
+.ontology-table-path {
+    font-size: 12px;
+    color: #2A3A2A;
+    opacity: 0.85;
+    line-height: 1.4;
+}
+
+.ontology-table-parent {
+    white-space: nowrap;
+    opacity: 0.9;
+}
+
+.ontology-table-level {
+    white-space: nowrap;
+    opacity: 0.9;
+}
+
+.ontology-table-definition {
+    color: #1A3A1A;
+    opacity: 0.92;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ontology-definition-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ontology-table-interactive .ontology-table-definition {
+    -webkit-line-clamp: 2;
+}
+
+.ontology-table-definition.expanded {
+    display: block;
+    -webkit-line-clamp: unset;
+    -webkit-box-orient: unset;
+    overflow: visible;
+}
+
+.ontology-more-button {
+    align-self: flex-start;
+    border: 1px solid rgba(176, 192, 176, 0.95);
+    background: rgba(216, 224, 216, 0.65);
+    color: #1A3A1A;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ontology-more-button:hover {
+    background: rgba(216, 224, 216, 0.95);
+}
+
 .card {
     position: absolute;
     width: 220px; /* Increased width */
