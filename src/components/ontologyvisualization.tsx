@@ -40,7 +40,7 @@ const CHILD_Y_SPACING = 180;
 const TRANSITION_MS = 900;
 
 const OntologyVisualization: React.FC = () => {
-  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'tableInteractive'>('tree');
+  const [viewMode, setViewMode] = useState<'tree' | 'tableInteractive'>('tree');
   const [tableQuery, setTableQuery] = useState('');
   const [pdfAvailable, setPdfAvailable] = useState<boolean | null>(null);
   const [interactiveExpandedIds, setInteractiveExpandedIds] = useState<Set<string>>(new Set());
@@ -536,48 +536,6 @@ const OntologyVisualization: React.FC = () => {
     prevViewModeRef.current = viewMode;
   }, [viewMode, handleResetZoom]);
 
-  type OntologyTableRow = {
-    node: OntologyNode;
-    parentName: string;
-    path: string;
-  };
-
-  const tableRows = useMemo<OntologyTableRow[]>(() => {
-    if (!nodes || nodes.length === 0) return [];
-    const nodeById = new Map(nodes.map(n => [n.id, n]));
-
-    const getPath = (n: OntologyNode) => {
-      const parts: string[] = [];
-      const seen = new Set<string>();
-      let cur: OntologyNode | undefined = n;
-      while (cur) {
-        if (seen.has(cur.id)) break;
-        seen.add(cur.id);
-        parts.push(cur.name);
-        cur = cur.parentId ? nodeById.get(cur.parentId) : undefined;
-      }
-      return parts.reverse().join(' › ');
-    };
-
-    return nodes
-      .map(n => {
-        const parentName = n.parentId ? (nodeById.get(n.parentId)?.name ?? '—') : '—';
-        return { node: n, parentName, path: getPath(n) };
-      })
-      .sort((a, b) => a.path.localeCompare(b.path));
-  }, [nodes]);
-
-  const filteredTableRows = useMemo(() => {
-    const q = tableQuery.trim().toLowerCase();
-    if (!q) return tableRows;
-    return tableRows.filter(r => {
-      const name = r.node.name?.toLowerCase() ?? '';
-      const def = r.node.definition?.toLowerCase() ?? '';
-      const path = r.path.toLowerCase();
-      return name.includes(q) || def.includes(q) || path.includes(q);
-    });
-  }, [tableQuery, tableRows]);
-
   // Detect overlapping cards in Tree view to reduce visual clutter.
   const overlappingTreeNodeIds = useMemo(() => {
     if (viewMode !== 'tree') return new Set<string>();
@@ -724,7 +682,7 @@ const OntologyVisualization: React.FC = () => {
       const parentName = node.parentId ? (nodeById.get(node.parentId)?.name ?? '—') : '—';
       const hasChildren = (childrenByParentId.get(node.id)?.length ?? 0) > 0;
 
-      // Compute path from existing precomputed tableRows if possible; otherwise derive quickly.
+      // Compute a path string for display (root › ... › node).
       const pathParts: string[] = [];
       let cur: OntologyNode | undefined = node;
       const seen = new Set<string>();
@@ -796,20 +754,11 @@ const OntologyVisualization: React.FC = () => {
           <button
             type="button"
             role="tab"
-            aria-selected={viewMode === 'table'}
-            className={`view-toggle-button ${viewMode === 'table' ? 'active' : ''}`}
-            onClick={() => setViewMode('table')}
-          >
-            Table (static)
-          </button>
-          <button
-            type="button"
-            role="tab"
             aria-selected={viewMode === 'tableInteractive'}
             className={`view-toggle-button ${viewMode === 'tableInteractive' ? 'active' : ''}`}
             onClick={() => setViewMode('tableInteractive')}
           >
-            Table (interactive)
+            Table view
           </button>
         </div>
 
@@ -869,69 +818,8 @@ const OntologyVisualization: React.FC = () => {
             <button className="reset-button" onClick={handleResetZoom}>Reset</button>
           </div>
         </>
-      ) : viewMode === 'table' ? (
-        <div className="ontology-table-wrap" role="region" aria-label="Ontology table">
-          <div className="ontology-table-controls">
-            <div className="ontology-search">
-              <label className="ontology-search-label" htmlFor="ontology-search-input">Search</label>
-              <input
-                id="ontology-search-input"
-                className="ontology-search-input"
-                value={tableQuery}
-                onChange={(e) => setTableQuery(e.target.value)}
-                placeholder="Search concepts, definitions, paths…"
-              />
-            </div>
-            <div className="ontology-table-meta">
-              {filteredTableRows.length.toLocaleString()} / {tableRows.length.toLocaleString()} concepts
-            </div>
-          </div>
-
-          <div className="ontology-table-card">
-            <table className="ontology-table">
-              <thead>
-                <tr>
-                  <th>Concept</th>
-                  <th>Parent</th>
-                  <th>Level</th>
-                  <th>Definition</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTableRows.map(r => (
-                  <tr
-                    key={r.node.id}
-                    className={selectedNode?.id === r.node.id ? 'selected' : ''}
-                    onClick={() => setSelectedNode(r.node)}
-                  >
-                    <td>
-                      <div className="ontology-table-concept">
-                        <div className="ontology-table-name">{r.node.name}</div>
-                        <div className="ontology-table-path">{r.path}</div>
-                      </div>
-                    </td>
-                    <td className="ontology-table-parent">{r.parentName}</td>
-                    <td className="ontology-table-level">{r.node.level}</td>
-                    <td>
-                      <div className="ontology-table-definition">
-                        {r.node.definition}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filteredTableRows.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="ontology-table-empty">
-                      No results. Try a different search query.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
       ) : (
-        <div className="ontology-table-wrap" role="region" aria-label="Interactive ontology table">
+        <div className="ontology-table-wrap" role="region" aria-label="Ontology table">
           <div className="ontology-table-controls">
             <div className="ontology-search">
               <label className="ontology-search-label" htmlFor="ontology-search-input">Search</label>
@@ -962,7 +850,6 @@ const OntologyVisualization: React.FC = () => {
                 <tr>
                   <th>Concept</th>
                   <th>Parent</th>
-                  <th>Level</th>
                   <th>Definition</th>
                 </tr>
               </thead>
@@ -1005,7 +892,6 @@ const OntologyVisualization: React.FC = () => {
                       </div>
                     </td>
                     <td className="ontology-table-parent">{r.parentName}</td>
-                    <td className="ontology-table-level">{r.node.level}</td>
                     <td>
                       <div className="ontology-definition-cell">
                         <div
@@ -1033,7 +919,7 @@ const OntologyVisualization: React.FC = () => {
                 ))}
                 {interactiveRows.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="ontology-table-empty">
+                  <td colSpan={3} className="ontology-table-empty">
                       No results. Try a different search query.
                     </td>
                   </tr>

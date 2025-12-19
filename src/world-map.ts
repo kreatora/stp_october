@@ -1512,30 +1512,17 @@ Promise.all([
     // Function to update map zoom based on map type
     function updateMapZoom(mapType: string) {
         const europeCenter: [number, number] = [5, 48]; // lon, lat for center of Western Europe
-        
-        if (mapType === 'policies') {
-            // Zoom to Europe
-            const europeScale = 5;
-            const europeTranslate = projection(europeCenter)!;
-            
-            svg.transition()
-                .duration(750)
-                .call(zoom.transform as any, d3.zoomIdentity
-                    .translate(width / 2 - europeTranslate[0] * europeScale, height / 2 - europeTranslate[1] * europeScale)
-                    .scale(europeScale));
-        } else if (mapType === 'targets' || mapType === 'climateTargets') {
-            // Zoom to world view with proper centering (slightly expanded from Europe view)
-            const worldCenter: [number, number] = [5, 48]; // Same center as Europe to prevent shifting
-            const worldScale = 1.3; // Just a bit less than Europe's 5 scale
-            const worldTranslate = projection(worldCenter)!
-            
-            svg.transition()
-                .duration(750)
-                .call(zoom.transform as any, d3.zoomIdentity
-                    .translate(width / 2 - worldTranslate[0] * worldScale, height / 2 - worldTranslate[1] * worldScale)
-                    .scale(worldScale));
-        }
-        // For 'ev' mapType, keep current zoom level (no change)
+
+        // Keep ALL map modes centered/zoomed to Europe (same as the policy map),
+        // so switching between "sheets" does not jump the camera.
+        const europeScale = 5;
+        const europeTranslate = projection(europeCenter)!;
+
+        svg.transition()
+            .duration(750)
+            .call(zoom.transform as any, d3.zoomIdentity
+                .translate(width / 2 - europeTranslate[0] * europeScale, height / 2 - europeTranslate[1] * europeScale)
+                .scale(europeScale));
     }
 
     // Function to update map visualization
