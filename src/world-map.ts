@@ -578,9 +578,9 @@ svg.call(zoom as any);
 
 const countryCode2to3 = Object.fromEntries(Object.entries(countryCodeMapping).map(([k, v]) => [v, k]));
 
-const policyDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRMpij3w_R0ZWyvWT8zBSi25VKx1X928VAfxc8FKBp6hanTbEkbgEs_V5XuR1koFRwtY3qvjh4ew_kk/pub?gid=1648232698&single=true&output=csv';
-const targetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZKEDLZNIvWdVYvdT-Re-GKVf_cRG2TfdVOxViBloLyHa5bbLukwBy19n1aNw3O3S_SPACFLWpTMn-/pub?gid=4146846&single=true&output=csv';
-const climateTargetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZKEDLZNIvWdVYvdT-Re-GKVf_cRG2TfdVOxViBloLyHa5bbLukwBy19n1aNw3O3S_SPACFLWpTMn-/pub?gid=351569358&single=true&output=csv';
+const policyDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQmC2tIzO9x7iSsdydqtH0U6Xnha-5qtJUKKBE9Bu3NOO5q9xLMkETcfI4Vwg_6SYvkvHkz1GiCpJWo/pub?gid=257456616&single=true&output=csv';
+const targetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT3-WPhaWoOuxNXsuYtvjWGbALa16b-5P8othvblAnDq2tZx463_OQSEheiZY0ZAA/pub?gid=2102422266&single=true&output=csv';
+const climateTargetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSCAQfaB6c1ibsvKmM7F5P6zgvq5tfdvMmnAOQaPdeto37x8VbwTofTjZa6ap6kg/pub?output=csv';
 
 const baseUrl = (import.meta as any).env.BASE_URL || '/';
 
@@ -614,6 +614,29 @@ let submenuInitialized = false;
 // Global reference to updateMap function
 let updateMapFunction: (() => void) | null = null;
 
+// ---- Renewable targets: explicitly supported types (UI + processing) ----
+// We intentionally restrict the "Renewable targets" map to only types that still have data.
+// If the sheet accidentally includes additional target types, they will be ignored and won't appear in the UI.
+const ENABLED_RENEWABLE_TARGET_TYPES = new Set(['Electricity', 'Final energy']);
+
+function canonicalRenewableTargetType(raw: any): 'Electricity' | 'Final energy' | null {
+    const t = String(raw ?? '').trim();
+    if (!t) return null;
+    const lower = t.toLowerCase();
+    if (lower === 'electricity') return 'Electricity';
+    if (lower === 'final energy') return 'Final energy';
+    return null; // Primary energy / Heating and cooling / Transport(ation) intentionally disabled
+}
+
+// ---- EU-only guard for targets/climate targets ----
+// The project requirement is to show targets only for EU countries.
+// Even if the upstream sheet accidentally contains non-EU rows, we ignore them here.
+const EU_COUNTRY_CODES_3 = new Set([
+    'AUT', 'BEL', 'BGR', 'HRV', 'CYP', 'CZE', 'DNK', 'EST', 'FIN', 'FRA',
+    'DEU', 'GRC', 'HUN', 'IRL', 'ITA', 'LVA', 'LTU', 'LUX', 'MLT', 'NLD',
+    'POL', 'PRT', 'ROU', 'SVK', 'SVN', 'ESP', 'SWE'
+]);
+
 // Function to map target type names to user-friendly display names
 function getTargetTypeDisplayName(targetType: string): string {
     // Normalize the target type for comparison
@@ -623,13 +646,7 @@ function getTargetTypeDisplayName(targetType: string): string {
         'Electricity': 'Renewable Electricity Target',
         'electricity': 'Renewable Electricity Target',
         'Final energy': 'Renewable Final Energy Target',
-        'Primary energy': 'Renewable Primary Energy Target',
-        'Heating and cooling': 'Renewable Heating And Cooling Target',
-        'Transport': 'Renewable Transportation Target',
-        'Transportation': 'Renewable Transportation Target',
-        'transport': 'Renewable Transportation Target',
-        'transportation': 'Renewable Transportation Target',
-        'EV': 'Renewable Transportation Target'
+        'final energy': 'Renewable Final Energy Target'
     };
     
     return displayNameMap[normalizedType] || targetType;
@@ -917,6 +934,21 @@ Promise.all([
         return acc;
     }, {});
 
+    // Policy CSV uses free-text country names; GeoJSON uses its own naming.
+    // Add aliases so data still attaches to the correct country.
+    const POLICY_COUNTRY_NAME_ALIASES: Record<string, string> = {
+        // GeoJSON uses "Czech Republic"
+        'czechia': 'Czech Republic'
+    };
+
+    function normalizePolicyCountryName(raw: any): string | null {
+        if (raw == null) return null;
+        const name = String(raw).trim();
+        if (!name) return null;
+        const aliased = POLICY_COUNTRY_NAME_ALIASES[name.toLowerCase()];
+        return aliased || name;
+    }
+
     // Collect all unique policy types (measures) and technology types for consistent color mapping
     const policyTypesSet = new Set<string>();
     const technologyTypesSet = new Set<string>();
@@ -971,7 +1003,7 @@ Promise.all([
     const policyData = policyCsv.reduce((acc: { [key: string]: number }, row: any) => {
         // Only count policies with Status === 'introduced'
         if (!isIntroduced(row)) return acc;
-        const countryName = row.country;
+        const countryName = normalizePolicyCountryName(row.country);
         if (countryName) {
             const countryCode3 = countryNameMap[countryName];
             if (countryCode3) {
@@ -990,7 +1022,7 @@ Promise.all([
     const policyTypeData = policyCsv.reduce((acc: { [key: string]: { [key: string]: number } }, row: any) => {
         // Only include policies with Status === 'introduced'
         if (!isIntroduced(row)) return acc;
-        const countryName = row.country;
+        const countryName = normalizePolicyCountryName(row.country);
         const technologyType = row.Technology_type || 'Unknown';
         
         if (countryName) {
@@ -1025,7 +1057,7 @@ Promise.all([
     let globalMaxYear: number | null = null;
 
     policyCsv.forEach((row: any) => {
-        const countryName = row.country;
+        const countryName = normalizePolicyCountryName(row.country);
         const measure = row.measure || 'Unknown';
         const rawYear = row.year;
         const rawDetail = policyChangedDetailColumnName ? row[policyChangedDetailColumnName] : null;
@@ -1094,114 +1126,135 @@ Promise.all([
         geoData.features.map((feature: any) => [feature.id, feature.properties.name])
     );
     
-    // Process targets data - organize by target type
+    // Process targets data - organize by target type (restricted to ENABLED_RENEWABLE_TARGET_TYPES)
     const targetsDataByType: { [targetType: string]: { [countryCode: string]: any } } = {};
     const allTargetsDataByCountry: { [countryCode: string]: any[] } = {}; // Store ALL targets for each country
     const allTargetTypes = new Set<string>();
     
     targetsCsv.forEach((row: any, index: number) => {
-        // Column A is 3-digit country code, F is decision date, H is target year, K is target value, N is target type
-        const countryCode3 = row[Object.keys(row)[0]]; // Column A
-        const decisionDate = row[Object.keys(row)[5]]; // Column F
-        const targetYear = row[Object.keys(row)[7]]; // Column H  
-        const targetValue = row[Object.keys(row)[10]]; // Column K
-        const targetType = row[Object.keys(row)[13]]; // Column N (Target_type)
-        
+        // New RE targets CSV structure (read by column names for stability):
+        // Country_code, Year_decision, Year_target, Year_latest_target, Target_type, Target_consistent
+        const countryCode3Raw = row.Country_code || row[Object.keys(row)[0]];
+        const countryCode3 = String(countryCode3Raw ?? '').trim().toUpperCase();
+        const decisionYearRaw = row.Year_decision;
+        const targetYearRaw = row.Year_latest_target ?? row.Year_target;
+        const rawTargetType = row.Target_type;
+        const targetType = canonicalRenewableTargetType(rawTargetType);
+        const targetConsistent = row.Target_consistent;
+
         if (index < 5) {
             console.log(`Row ${index}:`, {
-                countryCode3,
-                decisionDate,
-                targetYear,
-                targetValue,
-                targetType,
+                countryCode3: countryCode3Raw,
+                Year_decision: decisionYearRaw,
+                Year_target: row.Year_target,
+                Year_latest_target: row.Year_latest_target,
+                Target_type: rawTargetType,
+                Target_consistent: targetConsistent,
                 allKeys: Object.keys(row)
             });
         }
-        
-        // Process all target types
-        if (targetType && countryCode3 && decisionDate && targetYear && targetValue) {
-            allTargetTypes.add(targetType);
-            
-            const parsedDate = new Date(decisionDate);
-            const parsedTargetValue = parseFloat(targetValue);
-            const parsedTargetYear = parseInt(targetYear);
-            const decisionYear = parsedDate.getFullYear();
-            
-            if (!isNaN(parsedDate.getTime()) && !isNaN(parsedTargetValue) && !isNaN(parsedTargetYear)) {
-                // Store latest target for map display
+
+        // Only process enabled target types and EU countries
+        if (
+            targetType &&
+            ENABLED_RENEWABLE_TARGET_TYPES.has(targetType) &&
+            countryCode3 &&
+            EU_COUNTRY_CODES_3.has(countryCode3) &&
+            decisionYearRaw != null &&
+            targetYearRaw != null &&
+            targetConsistent != null
+        ) {
+            const parsedDecisionYear = parseInt(String(decisionYearRaw));
+            const parsedTargetYear = parseInt(String(targetYearRaw));
+            const parsedTargetValue = parseFloat(String(targetConsistent));
+
+            if (!isNaN(parsedDecisionYear) && !isNaN(parsedTargetYear) && !isNaN(parsedTargetValue)) {
+                allTargetTypes.add(targetType);
+
+                // Store latest target for map display (latest by decision year)
                 if (!targetsDataByType[targetType]) {
                     targetsDataByType[targetType] = {};
                 }
-                
-                if (!targetsDataByType[targetType][countryCode3] || 
-                    new Date(targetsDataByType[targetType][countryCode3].decisionDate) < parsedDate) {
+
+                const existing = targetsDataByType[targetType][countryCode3];
+                if (!existing || Number(existing.decisionYear) < parsedDecisionYear) {
                     targetsDataByType[targetType][countryCode3] = {
-                        decisionDate: decisionDate,
+                        decisionYear: parsedDecisionYear,
                         targetYear: parsedTargetYear,
                         targetValue: parsedTargetValue,
                         countryName: countryCode3toName[countryCode3] || countryCode3,
                         targetType: targetType
                     };
                 }
-                
+
                 // Store ALL targets for dashboard chart
                 if (!allTargetsDataByCountry[countryCode3]) {
                     allTargetsDataByCountry[countryCode3] = [];
                 }
-                
+
                 allTargetsDataByCountry[countryCode3].push({
                     targetType: targetType,
-                    decisionYear: decisionYear,
+                    decisionYear: parsedDecisionYear,
                     targetYear: parsedTargetYear,
-                    targetValue: parsedTargetValue,
-                    decisionDate: decisionDate
+                    targetValue: parsedTargetValue
                 });
             }
         }
     });
 
-    // Default to Primary energy for backward compatibility
-    const targetsData = targetsDataByType['Primary energy'] || {};
+    // Pick an initial target type for the targets map (prefer Electricity, else Final energy, else first available)
+    const availableTargetTypes = Array.from(allTargetTypes);
+    if (!availableTargetTypes.includes(currentTargetType) && availableTargetTypes.length > 0) {
+        currentTargetType = availableTargetTypes.includes('Electricity')
+            ? 'Electricity'
+            : (availableTargetTypes.includes('Final energy') ? 'Final energy' : availableTargetTypes[0]);
+    }
+
+    const targetsData = targetsDataByType[currentTargetType] || {};
     
     console.log("Available target types:", Array.from(allTargetTypes));
     console.log("Processed targets data by type:", Object.keys(targetsDataByType));
-    console.log("Primary energy targets:", Object.keys(targetsData).length, "countries");
+    console.log(`${currentTargetType} targets:`, Object.keys(targetsData).length, "countries");
     console.log("Sample targets data:", Object.entries(targetsData).slice(0, 3));
 
-    // Process climate targets data
+    // Process climate targets data (EU only)
     console.log("Climate Targets CSV columns:", climateTargetsCsv.columns);
     
     const climateTargetsData: { [countryCode: string]: any[] } = {};
     
     climateTargetsCsv.forEach((row: any, index: number) => {
-        // Column mapping based on the CSV structure:
-        // Country_code, Year_decision, Year_target, Target_average, Target_unit (column M)
-        const countryCode3 = row.Country_code || row[Object.keys(row)[0]];
+        // New CSV structure: use column R "Target_consistent_all" for the value
+        // (sheet includes many columns; we read by name for stability)
+        const countryCode3Raw = row.Country_code || row[Object.keys(row)[0]];
+        const countryCode3 = String(countryCode3Raw ?? '').trim().toUpperCase();
         const yearDecision = row.Year_decision;
         const yearTarget = row.Year_target;
-        const targetAverage = row.Target_average;
-        const targetUnit = row.Target_unit || row[Object.keys(row)[12]]; // Column M
+        const targetConsistentAll = row.Target_consistent_all ?? row.Target_consistent_all?.toString?.();
+        const targetUnit = row.Target_unit;
         
         if (index < 5) {
             console.log(`Climate Target Row ${index}:`, {
-                countryCode3,
+                countryCode3: countryCode3Raw,
                 yearDecision,
                 yearTarget,
-                targetAverage,
+                targetConsistentAll,
                 targetUnit,
                 allKeys: Object.keys(row)
             });
         }
         
-        // Process all climate targets - ONLY include rows where Target_unit is "Percent"
-        if (countryCode3 && yearDecision && yearTarget && targetAverage && targetUnit) {
+        // Process climate targets:
+        // - EU countries only
+        // - ONLY include rows where Target_unit is "Percent"
+        // - Target value comes from Target_consistent_all (column R)
+        if (countryCode3 && EU_COUNTRY_CODES_3.has(countryCode3) && yearDecision && yearTarget && targetConsistentAll != null && targetUnit) {
             const normalizedUnit = String(targetUnit).trim().toLowerCase();
             
             // Only process if Target_unit is "Percent"
             if (normalizedUnit === 'percent') {
                 const parsedYearDecision = parseInt(yearDecision);
                 const parsedYearTarget = parseInt(yearTarget);
-                const parsedTargetAverage = parseFloat(targetAverage);
+                const parsedTargetAverage = parseFloat(targetConsistentAll);
                 
                 if (!isNaN(parsedYearDecision) && !isNaN(parsedYearTarget) && !isNaN(parsedTargetAverage)) {
                     if (!climateTargetsData[countryCode3]) {
@@ -1258,9 +1311,11 @@ Promise.all([
         }
     };
 
-    // Fix currentTargetType if 'Electricity' is not available
-    if (!allData.targets.allTargetTypes.includes('Electricity') && allData.targets.allTargetTypes.length > 0) {
-        currentTargetType = allData.targets.allTargetTypes[0];
+    // Fix currentTargetType if the preferred type is not available (should be rare after filtering)
+    if (!allData.targets.allTargetTypes.includes(currentTargetType) && allData.targets.allTargetTypes.length > 0) {
+        currentTargetType = allData.targets.allTargetTypes.includes('Electricity')
+            ? 'Electricity'
+            : (allData.targets.allTargetTypes.includes('Final energy') ? 'Final energy' : allData.targets.allTargetTypes[0]);
     }
 
     // Create color scales for different map types
@@ -1292,16 +1347,22 @@ Promise.all([
         }
     });
     
-    // Default values for backward compatibility
-    const defaultTargetData = targetsDataByType['Primary energy'] || {};
-    const defaultTargetValues = Object.values(defaultTargetData).map((d: any) => d.targetValue);
-    const minTarget = defaultTargetValues.length > 0 ? d3.min(defaultTargetValues) : 0;
-    const maxTarget = defaultTargetValues.length > 0 ? d3.max(defaultTargetValues) : 100;
-    const minTargets = minTarget;
-    const maxTargets = maxTarget;
-    
-    const targetsColorScale = targetColorScales['Primary energy'] || d3.scaleSequential(d3.interpolateBlues)
-        .domain([minTarget as number, maxTarget as number]);
+    // Global min/max across enabled target types for consistent legend gradient
+    const allEnabledTargetValues: number[] = [];
+    allTargetTypes.forEach(targetType => {
+        const typeData = targetsDataByType[targetType] || {};
+        Object.values(typeData).forEach((d: any) => {
+            if (d && typeof d.targetValue === 'number' && Number.isFinite(d.targetValue)) {
+                allEnabledTargetValues.push(d.targetValue);
+            }
+        });
+    });
+
+    const minTargets = allEnabledTargetValues.length > 0 ? (d3.min(allEnabledTargetValues) as number) : 0;
+    const maxTargets = allEnabledTargetValues.length > 0 ? (d3.max(allEnabledTargetValues) as number) : 100;
+
+    const targetsColorScale = d3.scaleSequential(d3.interpolateBlues)
+        .domain([minTargets, maxTargets]);
 
     // Create color scale for EV data (placeholder values)
     const evColorScale = d3.scaleSequential(d3.interpolateReds)
@@ -1413,7 +1474,8 @@ Promise.all([
             const targetInfo = currentTargetData[countryCode];
             const displayName = getTargetTypeDisplayName(currentTargetType);
             if (targetInfo) {
-                return `<strong>${countryName}</strong><br/>Target Type: ${displayName}<br/>Target: ${targetInfo.targetValue}% by ${targetInfo.targetYear}<br/>Decision: ${targetInfo.decisionDate}`;
+                const decisionLabel = (targetInfo as any).decisionYear ?? (targetInfo as any).decisionDate ?? '—';
+                return `<strong>${countryName}</strong><br/>Target Type: ${displayName}<br/>Target: ${targetInfo.targetValue}% by ${targetInfo.targetYear}<br/>Decision: ${decisionLabel}`;
             } else {
                 return `<strong>${countryName}</strong><br/>No ${displayName} target data`;
             }
@@ -1513,8 +1575,9 @@ Promise.all([
     function updateMapZoom(mapType: string) {
         const europeCenter: [number, number] = [5, 48]; // lon, lat for center of Western Europe
         
-        if (mapType === 'policies') {
-            // Zoom to Europe
+        // We now focus all map sections on Europe by default (data is EU-only).
+        // Submenu interactions call updateMap(true) which skips zoom resets.
+        if (mapType === 'policies' || mapType === 'targets' || mapType === 'climateTargets' || mapType === 'ev') {
             const europeScale = 5;
             const europeTranslate = projection(europeCenter)!;
             
@@ -1523,19 +1586,7 @@ Promise.all([
                 .call(zoom.transform as any, d3.zoomIdentity
                     .translate(width / 2 - europeTranslate[0] * europeScale, height / 2 - europeTranslate[1] * europeScale)
                     .scale(europeScale));
-        } else if (mapType === 'targets' || mapType === 'climateTargets') {
-            // Zoom to world view with proper centering (slightly expanded from Europe view)
-            const worldCenter: [number, number] = [5, 48]; // Same center as Europe to prevent shifting
-            const worldScale = 1.3; // Just a bit less than Europe's 5 scale
-            const worldTranslate = projection(worldCenter)!
-            
-            svg.transition()
-                .duration(750)
-                .call(zoom.transform as any, d3.zoomIdentity
-                    .translate(width / 2 - worldTranslate[0] * worldScale, height / 2 - worldTranslate[1] * worldScale)
-                    .scale(worldScale));
         }
-        // For 'ev' mapType, keep current zoom level (no change)
     }
 
     // Function to update map visualization
@@ -1676,7 +1727,7 @@ Promise.all([
 
                 // Policies (filtered by selected country using name -> ISO3 map)
                 const rowsPolicies = policyCsv.filter((row: any) => {
-                    const cName = row.country;
+                    const cName = normalizePolicyCountryName(row.country);
                     if (!cName) return false;
                     const code3 = countryNameMap[cName] || null;
                     return code3 === countryCode3;
@@ -2500,7 +2551,7 @@ Promise.all([
                             return;
                         }
                         const rows = policyCsv.filter((row: any) => {
-                            const cName = row.country;
+                            const cName = normalizePolicyCountryName(row.country);
                             const m = row.measure || 'Unknown';
                             const introducedYear = Number(row.year);
                             if (!isIntroduced(row)) return false;
