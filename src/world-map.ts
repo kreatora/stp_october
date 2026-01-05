@@ -1587,6 +1587,17 @@ Promise.all([
                     .translate(width / 2 - europeTranslate[0] * europeScale, height / 2 - europeTranslate[1] * europeScale)
                     .scale(europeScale));
         }
+
+        // Keep ALL map modes centered/zoomed to Europe (same as the policy map),
+        // so switching between "sheets" does not jump the camera.
+        const europeScale = 5;
+        const europeTranslate = projection(europeCenter)!;
+
+        svg.transition()
+            .duration(750)
+            .call(zoom.transform as any, d3.zoomIdentity
+                .translate(width / 2 - europeTranslate[0] * europeScale, height / 2 - europeTranslate[1] * europeScale)
+                .scale(europeScale));
     }
 
     // Function to update map visualization
