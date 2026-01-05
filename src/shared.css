@@ -1,0 +1,133 @@
+/**
+ * Climate Policy Atlas - Shared Styles
+ * =====================================
+ * This file contains all shared styles used across the site.
+ * Import this in each HTML page instead of duplicating inline styles.
+ */
+
+/* ============================================
+   Design Tokens (CSS Custom Properties)
+   ============================================ */
+:root {
+    /* Typography */
+    --font-heading: 'Libre Baskerville', Georgia, serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+
+    /* Colors - Primary palette */
+    --color-primary-dark: rgb(42, 58, 42);      /* Header background */
+    --color-primary: rgb(50, 70, 53);           /* Nav background */
+    --color-primary-light: rgb(100, 140, 88);   /* Buttons, accents */
+    --color-primary-lighter: rgb(141, 192, 133); /* Hover states */
+    
+    /* Colors - Surfaces */
+    --color-surface: rgb(221, 227, 214);        /* Page background */
+    --color-surface-light: rgb(240, 245, 235);  /* Cards, panels */
+    
+    /* Colors - Text */
+    --color-text: rgb(26, 58, 26);              /* Dark text */
+    --color-text-muted: rgb(42, 58, 42);        /* Secondary text */
+    --color-text-light: oklch(0.99 0.02 97.77); /* Light text on dark bg */
+    
+    /* Colors - Borders */
+    --color-border: rgb(176, 192, 176);
+    --color-border-dark: rgb(42, 58, 42);
+    
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    
+    /* Border radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-full: 9999px;
+    
+    /* Transitions */
+    --transition-fast: 0.1s ease;
+    --transition-normal: 0.2s ease;
+    --transition-slow: 0.3s ease;
+}
+
+/* ============================================
+   Typography
+   ============================================ */
+body {
+    font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: var(--font-heading);
+    letter-spacing: -0.01em;
+}
+
+/* ============================================
+   Button Styles
+   ============================================ */
+.btn-custom {
+    background-color: var(--color-primary-light);
+    font-family: var(--font-body);
+    font-weight: 500;
+    transition: background-color var(--transition-normal);
+}
+
+.btn-custom:hover {
+    background-color: var(--color-primary-lighter);
+}
+
+/* ============================================
+   Background Utilities
+   ============================================ */
+.bg-custom {
+    background-color: var(--color-surface);
+}
+
+/* ============================================
+   Navigation Styles
+   ============================================ */
+.nav-custom {
+    background-color: var(--color-primary);
+}
+
+.nav-custom a {
+    font-family: var(--font-body);
+    font-weight: 500;
+}
+
+.text-custom {
+    color: var(--color-text-light);
+}
+
+.active-nav {
+    border-bottom: 2px solid var(--color-text-light);
+    padding-bottom: 2px;
+}
+
+.nav-item-hover {
+    padding-bottom: 2px;
+    transition: box-shadow var(--transition-fast);
+}
+
+.nav-item-hover:hover {
+    box-shadow: 0 2px 0 0 rgba(255, 255, 255, 0.7);
+}
+
+/* ============================================
+   Section Title Styles
+   ============================================ */
+.title-underline {
+    border-bottom: 1px solid var(--color-border-dark);
+    padding-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    display: inline-block;
+}
+
+/* ============================================
+   Header Styles
+   ============================================ */
+.header-brand {
+    font-family: var(--font-heading);
+}
+

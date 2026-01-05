@@ -4,38 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>World Map - Climate Policy Atlas</title>
+    <!-- Typography: Libre Baskerville (scholarly headings) + DM Sans (modern UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <!-- Shared styles (single source of truth) -->
     <style>
-        .btn-custom {
-            background-color: rgb(100, 140, 88);
-        }
-        .btn-custom:hover {
-            background-color: rgb(141, 192, 133);
-        }
-        .bg-custom {
-            background-color: rgb(221, 227, 214);
-        }
-        .nav-custom {
-            background-color: rgb(50, 70, 53);
-        }
-        .text-custom {
-            color: oklch(0.99 0.02 97.77);
-        }
-        .active-nav {
-            border-bottom: 2px solid oklch(0.99 0.02 97.77);
-            padding-bottom: 2px;
-        }
-        .nav-item-hover {
-            padding-bottom: 2px;
-        }
-        .nav-item-hover:hover {
-            box-shadow: 0 2px 0 0 rgba(255, 255, 255, 0.7);
-        }
-        .title-underline {
-            border-bottom: 1px solid rgb(42, 58, 42);
-            padding-bottom: 0.5rem;
-            margin-bottom: 1.5rem;
-            display: inline-block;
-        }
+        /* Page-specific styles for World Map */
         #world-map {
             width: 100%;
             height: 80vh;
@@ -605,16 +580,16 @@
         }
     </style>
   <script type="module" crossorigin src="./assets/worldMap.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/input.js">
-  <link rel="stylesheet" crossorigin href="./assets/input.css">
+  <link rel="modulepreload" crossorigin href="./assets/shared.js">
+  <link rel="stylesheet" crossorigin href="./assets/shared.css">
 </head>
-<body class="bg-stone-800 text-neutral-700 font-serif">
+<body class="bg-stone-800 text-neutral-700">
     <header class="text-white">
         <div class="bg-[rgb(42,58,42)] py-6">
             <div class="container mx-auto flex items-center justify-center gap-5">
                 <a href="index.html" class="inline-flex items-center gap-4">
             <img src="images/CLIMATE POLICY ATLAS LOGO-Photoroom.png" alt="Climate Policy Atlas Logo" class="h-14 md:h-16 w-auto" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));">
-                    <span class="text-3xl md:text-4xl font-bold tracking-tight text-custom">Climate Policy Atlas</span>
+                    <span class="text-3xl md:text-4xl font-bold tracking-tight text-custom header-brand">Climate Policy Atlas</span>
                 </a>
             </div>
         </div>

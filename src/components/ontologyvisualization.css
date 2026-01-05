@@ -1,6 +1,6 @@
 /* Remove global body styles that interfere with page layout */
 #ontology-container {
-    font-family: 'Georgia', 'Times New Roman', Times, serif; /* Classic serif font for ontology only */
+    font-family: var(--font-body);
     overflow: hidden;
     display: flex;
     justify-content: center;
@@ -51,7 +51,7 @@
     background: transparent;
     border: none;
     box-shadow: none;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-body);
     pointer-events: none; /* allow panning/zooming through empty area */
 }
 
@@ -163,7 +163,7 @@
     gap: 12px;
     flex-wrap: wrap;
     margin-bottom: 12px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-body);
 }
 
 .ontology-table-actions {
@@ -285,7 +285,7 @@
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-body);
 }
 
 .ontology-table thead th {
@@ -345,9 +345,10 @@
 }
 
 .ontology-table-name {
-    font-weight: 800;
+    font-weight: 700;
     font-size: 14px;
-    color: #1A3A1A;
+    font-family: var(--font-heading);
+    color: var(--color-text);
 }
 
 .ontology-table-path {
@@ -574,8 +575,8 @@
 
 .reset-button {
     display: flex !important;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    border-radius: 4px;
+    font-family: var(--font-body);
+    border-radius: var(--radius-sm);
     border: 1px solid #90a090; /* Slightly darker border for button */
     padding: 0.6em 1.2em;
     font-size: 0.9em;
@@ -600,8 +601,8 @@
     justify-content: center;
     font-size: 13px;
     font-weight: normal;
-    color: #2A3A2A; /* Dark text for zoom level if shown */
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--color-text-muted);
+    font-family: var(--font-body);
 }
 
 /* Banner styles - adjust as needed or remove if not used */
@@ -638,7 +639,8 @@
 
 .card-name {
     font-size: 1.4em; /* Increased font size for better readability */
-    font-weight: bold;
+    font-weight: 700;
+    font-family: var(--font-heading);
     color: #E8F5E9; /* Light text */
     margin-bottom: 0.5em;
     text-align: center;
@@ -664,15 +666,16 @@
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
+    font-family: var(--font-body);
 }
 
 .definition-panel .panel-title {
     font-size: 1.6em;
-    font-weight: bold;
-    color: rgb(42, 58, 42); /* Dark green for titles */
+    font-weight: 700;
+    font-family: var(--font-heading);
+    color: var(--color-text-muted);
     margin-bottom: 15px;
-    border-bottom: 1px solid rgb(180, 190, 180); /* Subtle separator */
+    border-bottom: 1px solid var(--color-border);
     padding-bottom: 10px;
 }
 
