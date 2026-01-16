@@ -1154,12 +1154,10 @@ Promise.all([
             });
         }
 
-        // Only process enabled target types and EU countries
         if (
             targetType &&
             ENABLED_RENEWABLE_TARGET_TYPES.has(targetType) &&
             countryCode3 &&
-            EU_COUNTRY_CODES_3.has(countryCode3) &&
             decisionYearRaw != null &&
             targetYearRaw != null &&
             targetConsistent != null
@@ -1169,25 +1167,6 @@ Promise.all([
             const parsedTargetValue = parseFloat(String(targetConsistent));
 
             if (!isNaN(parsedDecisionYear) && !isNaN(parsedTargetYear) && !isNaN(parsedTargetValue)) {
-                allTargetTypes.add(targetType);
-
-                // Store latest target for map display (latest by decision year)
-                if (!targetsDataByType[targetType]) {
-                    targetsDataByType[targetType] = {};
-                }
-
-                const existing = targetsDataByType[targetType][countryCode3];
-                if (!existing || Number(existing.decisionYear) < parsedDecisionYear) {
-                    targetsDataByType[targetType][countryCode3] = {
-                        decisionYear: parsedDecisionYear,
-                        targetYear: parsedTargetYear,
-                        targetValue: parsedTargetValue,
-                        countryName: countryCode3toName[countryCode3] || countryCode3,
-                        targetType: targetType
-                    };
-                }
-
-                // Store ALL targets for dashboard chart
                 if (!allTargetsDataByCountry[countryCode3]) {
                     allTargetsDataByCountry[countryCode3] = [];
                 }
@@ -1198,6 +1177,25 @@ Promise.all([
                     targetYear: parsedTargetYear,
                     targetValue: parsedTargetValue
                 });
+
+                if (EU_COUNTRY_CODES_3.has(countryCode3)) {
+                    allTargetTypes.add(targetType);
+
+                    if (!targetsDataByType[targetType]) {
+                        targetsDataByType[targetType] = {};
+                    }
+
+                    const existing = targetsDataByType[targetType][countryCode3];
+                    if (!existing || Number(existing.decisionYear) < parsedDecisionYear) {
+                        targetsDataByType[targetType][countryCode3] = {
+                            decisionYear: parsedDecisionYear,
+                            targetYear: parsedTargetYear,
+                            targetValue: parsedTargetValue,
+                            countryName: countryCode3toName[countryCode3] || countryCode3,
+                            targetType: targetType
+                        };
+                    }
+                }
             }
         }
     });
@@ -1466,9 +1464,15 @@ Promise.all([
 
     // Function to get tooltip content based on current map type
     function getTooltipContent(countryCode: string, countryName: string): string {
+        const fmt1 = (v: any) => {
+            const n = Number(v);
+            if (!Number.isFinite(n)) return String(v);
+            const r = Math.round(n * 10) / 10;
+            return r % 1 === 0 ? String(Math.trunc(r)) : r.toFixed(1);
+        };
         if (currentMapType === 'policies') {
             const policyCount = policyData[countryCode] || 'No data';
-            return `<strong>${countryName}</strong><br/>Policies: ${policyCount}`;
+            return `<strong>${countryName}</strong><br/>RE Support: ${policyCount}`;
         } else if (currentMapType === 'targets') {
             const currentTargetData = allData.targets.dataByType[currentTargetType] || {};
             const targetInfo = currentTargetData[countryCode];
@@ -1487,7 +1491,7 @@ Promise.all([
                 if (currentClimateTargetYearGroup === 'latest') {
                     // Show the most recent target (by decision year)
                     const latestTarget = targets.sort((a: any, b: any) => b.yearDecision - a.yearDecision)[0];
-                    return `<strong>${countryName}</strong><br/>Emission Target: ${latestTarget.targetValue}% by ${latestTarget.yearTarget}<br/>Decision Year: ${latestTarget.yearDecision}`;
+                    return `<strong>${countryName}</strong><br/>Emission Target: ${fmt1(latestTarget.targetValue)}% by ${latestTarget.yearTarget}<br/>Decision Year: ${latestTarget.yearDecision}`;
                 }
                 
                 // Year group filtering - show target matching the selected year group
@@ -1498,7 +1502,7 @@ Promise.all([
                 
                 if (matchingTargets.length > 0) {
                     const latestMatchingTarget = matchingTargets.sort((a: any, b: any) => b.yearDecision - a.yearDecision)[0];
-                    return `<strong>${countryName}</strong><br/>Emission Target: ${latestMatchingTarget.targetValue}% by ${latestMatchingTarget.yearTarget}<br/>Decision Year: ${latestMatchingTarget.yearDecision}`;
+                    return `<strong>${countryName}</strong><br/>Emission Target: ${fmt1(latestMatchingTarget.targetValue)}% by ${latestMatchingTarget.yearTarget}<br/>Decision Year: ${latestMatchingTarget.yearDecision}`;
                 } else {
                     return `<strong>${countryName}</strong><br/>No emission target data for ${currentClimateTargetYearGroup}`;
                 }
@@ -1645,6 +1649,13 @@ Promise.all([
             const upperAbbr = new Set(['fit', 'tgc', 'pv']);
             if (upperAbbr.has(lower)) return lower.toUpperCase();
             return lower.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        };
+
+        const fmt1 = (v: any) => {
+            const n = Number(v);
+            if (!Number.isFinite(n)) return String(v ?? '');
+            const rounded = Math.round(n * 10) / 10;
+            return String(rounded);
         };
 
 		// Early no-data check: if no policy, targets, or climate targets data exists, show kind message
@@ -1861,17 +1872,16 @@ Promise.all([
                 }
             }
 
-            // Targets Progression Chart: Show how RE targets have evolved over time
-            const targetsContainer = document.getElementById('dashboard-pie');
-            
-            // Get ALL targets for this country from the stored data
+            const leftContainer = document.getElementById('dashboard-pie');
             const countryTargets = allData.targets.allTargetsByCountry?.[countryCode3] || [];
-            
-            console.log(`Country ${countryName} has ${countryTargets.length} total targets`);
-            
-            if (targetsContainer && countryTargets.length > 0) {
-                // Allow positioned overlays inside the container
-                (targetsContainer as HTMLElement).style.position = 'relative';
+
+            if (leftContainer) {
+                (leftContainer as HTMLElement).style.position = 'relative';
+                leftContainer.innerHTML = '';
+            }
+
+            if (leftContainer && countryTargets.length > 0) {
+                const targetsContainer = leftContainer as HTMLElement;
                 const rect = targetsContainer.getBoundingClientRect();
                 const margin = { top: 40, right: 60, bottom: 60, left: 60 };
                 const width = rect.width - margin.left - margin.right;
@@ -2048,7 +2058,7 @@ Promise.all([
                                     const [mouseX, mouseY] = d3.pointer(event, targetsContainer);
                                     tooltip
                                         .style('visibility', 'visible')
-                                        .html(`Target updated in ${currTarget.decisionYear}<br/>From ${prevTarget.targetValue}% to ${currTarget.targetValue}%`)
+                                        .html(`Target updated in ${currTarget.decisionYear}<br/>From ${fmt1(prevTarget.targetValue)}% to ${fmt1(currTarget.targetValue)}%`)
                                         .style('top', (mouseY + 10) + 'px')
                                         .style('left', (mouseX + 10) + 'px');
                                 })
@@ -2084,7 +2094,7 @@ Promise.all([
                         : target.targetYear;
                     
                     // Draw horizontal line from decision year to end year at the target value level
-                    const lineTooltipText = `${target.targetValue}% target from ${target.decisionYear} to ${endYear}${endYear !== target.targetYear ? ` (superseded, original deadline: ${target.targetYear})` : ''}`;
+                    const lineTooltipText = `${fmt1(target.targetValue)}% target from ${target.decisionYear} to ${endYear}${endYear !== target.targetYear ? ` (superseded, original deadline: ${target.targetYear})` : ''}`;
                     g.append('line')
                         .attr('class', `target-line target-type-${target.targetType.replace(/[^a-zA-Z0-9]/g, '-')}`)
                         .attr('data-target-type', target.targetType)
@@ -2133,7 +2143,7 @@ Promise.all([
                             const [mouseX, mouseY] = d3.pointer(event, targetsContainer);
                             tooltip
                                 .style('visibility', 'visible')
-                                .html(`Decision: ${target.decisionYear}<br/>Target: ${target.targetValue}% by ${target.targetYear}`)
+                                        .html(`Decision: ${target.decisionYear}<br/>Target: ${fmt1(target.targetValue)}% by ${target.targetYear}`)
                                 .style('top', (mouseY + 10) + 'px')
                                 .style('left', (mouseX + 10) + 'px');
                         })
@@ -2150,8 +2160,8 @@ Promise.all([
                     
                     // Draw end point (at endYear, which might be earlier if superseded)
                     const endTooltipText = endYear === target.targetYear 
-                        ? `Target deadline: ${target.targetYear}<br/>Target: ${target.targetValue}%`
-                        : `Superseded in ${endYear}<br/>Original deadline: ${target.targetYear}<br/>Target: ${target.targetValue}%`;
+                        ? `Target deadline: ${target.targetYear}<br/>Target: ${fmt1(target.targetValue)}%`
+                        : `Superseded in ${endYear}<br/>Original deadline: ${target.targetYear}<br/>Target: ${fmt1(target.targetValue)}%`;
                     g.append('circle')
                         .attr('class', `target-circle target-type-${target.targetType.replace(/[^a-zA-Z0-9]/g, '-')}`)
                         .attr('data-target-type', target.targetType)
@@ -2348,9 +2358,8 @@ Promise.all([
                     .text('Click to show/hide target types');
 
                 // Removed per-chart overlay in favor of single dashboard overlay
-            } else if (targetsContainer) {
-                // Show message when no targets data is available
-                targetsContainer.innerHTML = `
+            } else if (leftContainer) {
+                leftContainer.innerHTML = `
                     <div style="display:flex;align-items:center;justify-content:center;height:100%;">
                         <div style="text-align:center;color:#64748b;padding:20px;">
                             <div style="font-size:14px;font-weight:600;margin-bottom:4px;">No Targets Data</div>
@@ -2362,6 +2371,7 @@ Promise.all([
             // Time series chart: row-per-policy type (non-stacked)
             const tsContainer = document.getElementById('dashboard-timeseries');
             const countryTime = timeSeriesData[countryCode3];
+            if (tsContainer) tsContainer.innerHTML = '';
             if (tsContainer && countryTime) {
                 // Allow positioned overlays inside the container
                 (tsContainer as HTMLElement).style.position = 'relative';
@@ -2377,6 +2387,13 @@ Promise.all([
                 });
                 const yearsWith = allYears.filter(y => Object.values(yearly[y] || {}).some(v => (v as number) > 0));
                 if (yearsWith.length === 0) {
+                    tsContainer.innerHTML = `
+                        <div style="display:flex;align-items:center;justify-content:center;height:100%;">
+                            <div style="text-align:center;color:#64748b;padding:20px;">
+                                <div style="font-size:14px;font-weight:600;margin-bottom:4px;">No Policy Timeline Data</div>
+                                <div style="font-size:12px;">No policy time series found for ${countryName}</div>
+                            </div>
+                        </div>`;
                     return;
                 }
                 const startY = yearsWith[0];
@@ -2514,15 +2531,48 @@ Promise.all([
                             item.style.border = '1px solid #e5e7eb';
                             const f = (name: string) => r[name] ?? '';
                             const titleVal = f('level_1') || '';
+                            const currencyCodes = new Set([
+                                'eur','usd','gbp','chf','cad','aud','nok','sek','dkk','pln','czk','huf','ron','try','jpy','cny','inr','brl','rub','mxn','zar','ils','krw','sgd','hkd','thb','myr','idr','php','uah','bgn','isk','rsd','hrk','nzd','twd','cop','ars','clp','pen','qar','sar','aed','kwd','bhd','lkr','ngn','bdt','pkr','vnd','egp','mad','dzd','tnd','kes','ghs','tzs','ugx','xaf','xof','xpf'
+                            ]);
+                            const round3 = (m: string) => {
+                                const n = parseFloat(m);
+                                if (!isFinite(n)) return m;
+                                const v = Math.round(n * 1000) / 1000;
+                                return String(v);
+                            };
                             const titleHtml = titleVal
-                                ? titleVal
+                                ? (() => {
+                                    const base = String(titleVal).trim();
+                                    if (!base) return '-';
+                                    const rounded = base.replace(/(?<![\w-])(-?\d*\.?\d+)(?![\w-])/g, round3);
+                                    return rounded.replace(/\b([a-z]{3})\b/g, (m, c) => currencyCodes.has(c) ? c.toUpperCase() : m);
+                                })()
                                 : `detail not available<span style="font-size:${isNarrow ? '10px' : '11px'}; color:#94a3b8; margin-left:6px;"> · see dataset</span>`;
+                            const formatCurrencyCode = (s: string) => String(s || '').trim() ? String(s || '').trim().toUpperCase() : '-';
+                            const formatDetailText = (s: string) => {
+                                const base = String(s || '').trim();
+                                if (!base) return '-';
+                                const withRounded = base.replace(/(?<![\\w-])(-?\\d*\\.?\\d+)(?![\\w-])/g, round3);
+                                return withRounded.replace(/\\b([a-z]{3})\\b/g, (m, c) => currencyCodes.has(c) ? c.toUpperCase() : m);
+                            };
+                            const formatTechType = (s: string) => {
+                                const base = String(s || '').trim();
+                                if (!base) return '-';
+                                return base
+                                    .replace(/[_-]+/g, ' ')
+                                    .split(/\s+/)
+                                    .map(w => /^[A-Z]{2,4}$/.test(w) ? w : (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()))
+                                    .join(' ');
+                            };
+                            const currencyVal = formatCurrencyCode(f('level_1_currency') || '');
+                            const percentDetailVal = formatDetailText(f('level_1_percent_type_detail') || '');
+                            const unitValRaw = String(f('level_1_unit') || '').trim();
+                            const unitDisplayVal = unitValRaw ? unitValRaw : percentDetailVal;
                             item.innerHTML = `
                                 <div style="font-weight:600; color:#374151; font-size:${isNarrow ? '13px' : '14px'};">${titleHtml}</div>
-                                <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Tech: ${f('Technology_type') || '-'}</div>
-                                <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Currency: ${f('level_1_currency') || '-'}</div>
-                                <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Percent Detail: ${f('level_1_percent_type_detail') || '-'}</div>
-                                <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Unit: ${f('level_1_unit') || '-'}</div>
+                                <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Tech: ${formatTechType(f('Technology_type') || '')}</div>
+                                <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Currency: ${currencyVal}</div>
+                                <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Unit: ${unitDisplayVal || '-'}</div>
                             `;
                             list.appendChild(item);
                         });

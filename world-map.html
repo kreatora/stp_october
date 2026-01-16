@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>World Map - Climate Policy Atlas</title>
-    <link rel="stylesheet" href="src/input.css">
+    <link rel="stylesheet" href="src/input.css?v=20260116">
     <!-- Typography: Libre Baskerville (scholarly headings) + DM Sans (modern UI) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <!-- Shared styles (single source of truth) -->
-    <link rel="stylesheet" href="src/shared.css">
+    <link rel="stylesheet" href="src/shared.css?v=20260116">
     <style>
         /* Page-specific styles for World Map */
         #world-map {
@@ -45,7 +45,7 @@
             position: relative;
             display: inline-block;
             /* Width/height will be adapted via JS to ~10% of map width for 4 options */
-            width: 440px;
+            width: 520px;
             height: 52px;
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(241, 245, 249, 0.98) 100%);
             border-radius: 24px;
@@ -81,7 +81,7 @@
             justify-content: center;
             color: white;
             font-weight: 700;
-            font-size: 11px;
+            font-size: 10px;
             letter-spacing: 0.6px;
         }
         
@@ -92,13 +92,13 @@
             transform: translateY(-50%);
             font-weight: 700;
             /* Scale text slightly with viewport while keeping bounds */
-            font-size: clamp(10px, 1.6vw, 12px);
+            font-size: clamp(9px, 1.4vw, 11px);
             letter-spacing: 0.2px;
             transition: all 0.3s ease;
             cursor: pointer;
             user-select: none;
             z-index: 10;
-            padding: 5px 7px;
+            padding: 4px 6px;
             border-radius: 12px;
             min-width: 60px;
             text-align: center;
@@ -582,7 +582,7 @@
         <div class="bg-[rgb(42,58,42)] py-6">
             <div class="container mx-auto flex items-center justify-center gap-5">
                 <a href="index.html" class="inline-flex items-center gap-4">
-            <img src="images/CLIMATE POLICY ATLAS LOGO-Photoroom.png" alt="Climate Policy Atlas Logo" class="h-14 md:h-16 w-auto" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));">
+            <img src="images/logo.png" alt="Climate Policy Atlas Logo" class="h-14 md:h-16 w-auto" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));">
                     <span class="text-3xl md:text-4xl font-bold tracking-tight text-custom header-brand">Climate Policy Atlas</span>
                 </a>
             </div>
@@ -602,8 +602,12 @@
 
     <main class="p-4 md:p-8 bg-custom min-h-screen">
         <section class="max-w-7xl mx-auto py-6 text-center">
-            <h2 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline">Climate Policy Atlas</h2>
+            <h2 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline text-center mb-6 md:mb-8">Climate Policy Atlas</h2>
             
+            <div class="mx-auto max-w-5xl mb-6">
+                <p class="text-lg text-neutral-700 text-left">The Climate Policy Atlas provides detailed time-series data on climate and energy policy, for the time frame 2000-2024. In the present version, we provide detailed data on renewable electricity support instruments for all EU countries and the UK; electric car support instruments for France, Germany, Ireland and Greece; and targets for renewable electricity, energy and emissions (for target years 2020-2050). The data will be continuously expanded within the NFDI4Energy project and in collaboration with other data collection efforts. We host these datasets on Zenodo, making them easy to find, check, and use for research by anyone interested. As the data is updated, Zenodo also allows for clear version control. You can download the data either in its entirety (HERE). Further information about our data gathering process and definitions are available on Zenodo with the respective datasets. The data is to the best of our knowledge correct, but we do not assume any responsibility for any remaining data errors or publication mistakes. Should you find errors or have data to fill gaps, please contact (Contact email).</p>
+            </div>
+
             <!-- How to use: persistent helper (no background, smaller italic text) -->
             <div class="mx-auto max-w-5xl mb-4">
                 <p class="text-left italic" style="font-size: 0.85rem; color: #334155;">
@@ -616,11 +620,11 @@
                 <!-- Hidden radio buttons for compatibility -->
                     <label style="display: none;">
                         <input type="radio" name="mapType" value="policies" checked>
-                        <span>RE Policies</span>
+                        <span>RE Support</span>
                     </label>
                     <label style="display: none;">
                         <input type="radio" name="mapType" value="ev">
-                        <span>EV</span>
+                        <span>EV Support</span>
                     </label>
                     <label style="display: none;">
                         <input type="radio" name="mapType" value="targets">
@@ -638,9 +642,9 @@
                         <div class="toggle-switch-container">
                             <div class="toggle-switch" data-active="policies" id="mapTypeToggle">
                                 <div class="toggle-slider"></div>
-                                <div class="toggle-option first">Policies</div>
-                                <div class="toggle-option second">EV</div>
-                                <div class="toggle-option third">RE Targets</div>
+                                <div class="toggle-option first">RE Support</div>
+                                <div class="toggle-option second">EV Support</div>
+                                <div class="toggle-option third">Renewables Targets</div>
                                 <div class="toggle-option fourth">Climate Targets</div>
                             </div>
                             
@@ -703,6 +707,6 @@
         </div>
     </div>
 
-    <script type="module" src="/src/world-map.ts"></script>
+    <script type="module" src="/src/world-map.ts?v=20260116"></script>
 </body>
 </html>
