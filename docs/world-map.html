@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>World Map - Climate Policy Atlas</title>
+    <title>World Map - Climate Policy Atlas</title>
     <!-- Typography: Libre Baskerville (scholarly headings) + DM Sans (modern UI) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <!-- Shared styles (single source of truth) -->
+    <!-- Shared styles (single source of truth) -->
     <style>
         /* Page-specific styles for World Map */
         #world-map {
@@ -579,9 +579,10 @@
             display: block;
         }
     </style>
-  <script type="module" crossorigin src="./assets/worldMap.C86cgKsB.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/shared.Dq8AUg8l.js">
-  <link rel="stylesheet" crossorigin href="./assets/shared.LEkU7lsv.css">
+  <script type="module" crossorigin src="./assets/worldMap.Dx7nopkE.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/input.CXjJlj4-.js">
+  <link rel="stylesheet" crossorigin href="./assets/main.DHL2KGJ2.css">
+  <link rel="stylesheet" crossorigin href="./assets/shared.WBe8uAPb.css">
 </head>
 <body class="bg-stone-800 text-neutral-700">
     <header class="text-white">
@@ -610,10 +611,6 @@
         <section class="max-w-7xl mx-auto py-6 text-center">
             <h2 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline text-center mb-6 md:mb-8">Climate Policy Atlas</h2>
             
-            <div class="mx-auto max-w-5xl mb-6">
-                <p class="text-lg text-neutral-700 text-left">The Climate Policy Atlas provides detailed time-series data on climate and energy policy, for the time frame 2000-2024. In the present version, we provide detailed data on renewable electricity support instruments for all EU countries and the UK; electric car support instruments for France, Germany, Ireland and Greece; and targets for renewable electricity, energy and emissions (for target years 2020-2050). The data will be continuously expanded within the NFDI4Energy project and in collaboration with other data collection efforts. We host these datasets on Zenodo, making them easy to find, check, and use for research by anyone interested. As the data is updated, Zenodo also allows for clear version control. You can download the data either in its entirety (HERE). Further information about our data gathering process and definitions are available on Zenodo with the respective datasets. The data is to the best of our knowledge correct, but we do not assume any responsibility for any remaining data errors or publication mistakes. Should you find errors or have data to fill gaps, please contact (Contact email).</p>
-            </div>
-
             <!-- How to use: persistent helper (no background, smaller italic text) -->
             <div class="mx-auto max-w-5xl mb-4">
                 <p class="text-left italic" style="font-size: 0.85rem; color: #334155;">
@@ -712,6 +709,35 @@
             <div id="modal-content" class="p-4 h-[calc(100%-60px)] overflow-auto"></div>
         </div>
     </div>
-
+
+    <footer style="background-color: rgb(42,58,42); color: #f5f5f0; padding: 1.5rem 2rem;">
+        <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            <div>
+                <h4 style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem;">Institution</h4>
+                <p style="font-size: 0.85rem; opacity: 0.9; line-height: 1.4; margin: 0;"><a href="https://www.fau.eu/" target="_blank" rel="noopener noreferrer" style="color: #f5f5f0; text-decoration: none;">Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)</a></p>
+                <p style="font-size: 0.85rem; opacity: 0.9; line-height: 1.4; margin: 0;"><a href="https://www.transitionpolicy.rw.fau.de/" target="_blank" rel="noopener noreferrer" style="color: #f5f5f0; text-decoration: none;">Sustainability Transition Policy Group</a></p>
+            </div>
+            <div>
+                <h4 style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem;">Quick Links</h4>
+                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem; line-height: 1.4;">
+                    <li><a href="world-map.html" style="color: #f5f5f0; text-decoration: none;">World Map</a></li>
+                    <li><a href="ontology.html" style="color: #f5f5f0; text-decoration: none;">Ontology</a></li>
+                    <li><a href="data.html" style="color: #f5f5f0; text-decoration: none;">Data</a></li>
+                    <li><a href="about-us.html" style="color: #f5f5f0; text-decoration: none;">About Us</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem;">Contact</h4>
+                <p style="font-size: 0.85rem; opacity: 0.9; line-height: 1.4; margin: 0;"><a href="mailto:climatepolicyatlas@nfdi4energy.org" style="color: #f5f5f0; text-decoration: none;">climatepolicyatlas@nfdi4energy.org</a></p>
+                <p style="font-size: 0.85rem; opacity: 0.9; line-height: 1.4; margin: 0;">Funded by <a href="https://nfdi4energy.uol.de/" target="_blank" rel="noopener noreferrer" style="color: #f5f5f0; text-decoration: none;">NFDI4Energy</a></p>
+            </div>
+        </div>
+        <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.2); margin: 1rem 0 0.75rem;">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; font-size: 0.75rem; opacity: 0.7; gap: 0.5rem;">
+            <p style="margin: 0;">© 2026 Climate Policy Atlas</p>
+            <p style="margin: 0;">Last updated: January 2026</p>
+        </div>
+    </footer>
+
 </body>
 </html>

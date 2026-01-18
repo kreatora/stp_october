@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <!-- Shared styles (single source of truth) -->
-    <link rel="stylesheet" href="src/shared.css?v=20260116">
+    <link rel="stylesheet" href="src/shared.css?v=20260118">
 </head>
 <body class="bg-stone-800 text-neutral-700">
     <header class="text-white">
@@ -43,7 +43,11 @@
                 <!-- Datasets Section -->
                 <div class="mb-8">
                     <h3 class="text-2xl font-semibold text-[rgb(42,58,42)] mb-4">Research Datasets</h3>
-                    <p class="text-lg text-neutral-700 mb-6">The Climate Policy Atlas provides detailed time-series data on climate and energy policy, for the time frame 2000-2024. In the present version, we provide detailed data on renewable electricity support instruments for all EU countries and the UK; electric car support instruments for France, Germany, Ireland and Greece; and targets for renewable electricity, energy and emissions (for target years 2020-2050). The data will be continuously expanded within the NFDI4Energy project and in collaboration with other data collection efforts. We host these datasets on Zenodo, making them easy to find, check, and use for research by anyone interested. As the data is updated, Zenodo also allows for clear version control. You can download the data either in its entirety (HERE). Further information about our data gathering process and definitions are available on Zenodo with the respective datasets. The data is to the best of our knowledge correct, but we do not assume any responsibility for any remaining data errors or publication mistakes. Should you find errors or have data to fill gaps, please contact (Contact email).</p>
+                    <p class="text-lg text-neutral-700 mb-6">The Climate Policy Atlas provides detailed time-series data on climate and energy policy, for the time frame 2000-2024. In the present version, we provide detailed data on renewable electricity support instruments for all EU countries and the UK; electric car support instruments for France, Germany, Ireland and Greece; and targets for renewable electricity, energy and emissions (for target years 2020-2050). The data will be continuously expanded within the NFDI4Energy project and in collaboration with other data collection efforts. We host these datasets on Zenodo, making them easy to find, check, and use for research by anyone interested. As the data is updated, Zenodo also allows for clear version control. You can download the data either in its entirety <a href="#" id="download-all-data-link" class="content-link">here</a>. Further information about our data gathering process and definitions are available on Zenodo with the respective datasets. The data is to the best of our knowledge correct, but we do not assume any responsibility for any remaining data errors or publication mistakes. Should you find errors or have data to fill gaps, please contact <a href="mailto:climatepolicyatlas@nfdi4energy.org" class="content-link">climatepolicyatlas@nfdi4energy.org</a>.</p>
+                    
+                    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg mb-6">
+                        <p class="text-neutral-700"><strong>Citation Notice:</strong> Data are free for reuse but must be cited appropriately (see Zenodo for details). If you are reusing renewable energy policy support data on emissions trading or carbon taxes, please note that this is from the <a href="https://carbonpricingdashboard.worldbank.org/" target="_blank" rel="noopener noreferrer" class="content-link">World Bank Carbon Pricing Dashboard</a> and should be cited as such for subsequent analyses.</p>
+                    </div>
                     
                     <div class="grid gap-4 md:gap-6">
                         <div class="bg-[#f5f1e8] p-4 rounded-lg shadow-md border border-gray-200">
@@ -51,7 +55,7 @@
                             <a href="https://zenodo.org/records/15476049" 
                                target="_blank" 
                                rel="noopener noreferrer"
-                               class="text-blue-600 hover:text-blue-800 underline">
+                               class="content-link">
                                 https://zenodo.org/records/15476049
                             </a>
                         </div>
@@ -61,7 +65,7 @@
                             <a href="https://zenodo.org/records/15476330" 
                                target="_blank" 
                                rel="noopener noreferrer"
-                               class="text-blue-600 hover:text-blue-800 underline">
+                               class="content-link">
                                 https://zenodo.org/records/15476330
                             </a>
                         </div>
@@ -71,7 +75,7 @@
                             <a href="https://zenodo.org/records/15476149" 
                                target="_blank" 
                                rel="noopener noreferrer"
-                               class="text-blue-600 hover:text-blue-800 underline">
+                               class="content-link">
                                 https://zenodo.org/records/15476149
                             </a>
                         </div>
@@ -83,7 +87,7 @@
                             <a href="https://zenodo.org/records/15477180" 
                                target="_blank" 
                                rel="noopener noreferrer"
-                               class="text-blue-600 hover:text-blue-800 underline">
+                               class="content-link">
                                 https://zenodo.org/records/15477180
                             </a>
                         </div>
@@ -93,8 +97,112 @@
         </section>
     </main>
 
+    <footer style="background-color: rgb(42,58,42); color: #f5f5f0; padding: 1.5rem 2rem;">
+        <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            <div>
+                <h4 style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem;">Institution</h4>
+                <p style="font-size: 0.85rem; opacity: 0.9; line-height: 1.4; margin: 0;"><a href="https://www.fau.eu/" target="_blank" rel="noopener noreferrer" style="color: #f5f5f0; text-decoration: none;">Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)</a></p>
+                <p style="font-size: 0.85rem; opacity: 0.9; line-height: 1.4; margin: 0;"><a href="https://www.transitionpolicy.rw.fau.de/" target="_blank" rel="noopener noreferrer" style="color: #f5f5f0; text-decoration: none;">Sustainability Transition Policy Group</a></p>
+            </div>
+            <div>
+                <h4 style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem;">Quick Links</h4>
+                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem; line-height: 1.4;">
+                    <li><a href="world-map.html" style="color: #f5f5f0; text-decoration: none;">World Map</a></li>
+                    <li><a href="ontology.html" style="color: #f5f5f0; text-decoration: none;">Ontology</a></li>
+                    <li><a href="data.html" style="color: #f5f5f0; text-decoration: none;">Data</a></li>
+                    <li><a href="about-us.html" style="color: #f5f5f0; text-decoration: none;">About Us</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem;">Contact</h4>
+                <p style="font-size: 0.85rem; opacity: 0.9; line-height: 1.4; margin: 0;"><a href="mailto:climatepolicyatlas@nfdi4energy.org" style="color: #f5f5f0; text-decoration: none;">climatepolicyatlas@nfdi4energy.org</a></p>
+                <p style="font-size: 0.85rem; opacity: 0.9; line-height: 1.4; margin: 0;">Funded by <a href="https://nfdi4energy.uol.de/" target="_blank" rel="noopener noreferrer" style="color: #f5f5f0; text-decoration: none;">NFDI4Energy</a></p>
+            </div>
+        </div>
+        <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.2); margin: 1rem 0 0.75rem;">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; font-size: 0.75rem; opacity: 0.7; gap: 0.5rem;">
+            <p style="margin: 0;">© 2026 Climate Policy Atlas</p>
+            <p style="margin: 0;">Last updated: January 2026</p>
+        </div>
+    </footer>
+
     <div id="root"></div>
     <script type="module" src="/src/data.tsx?v=20260116"></script>
+    
+    <!-- Download All Data functionality (same as world map) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const downloadLink = document.getElementById('download-all-data-link');
+            if (downloadLink) {
+                downloadLink.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    
+                    // Same data sources as world map
+                    const policyDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR254dV56uMYU4Rmi45UNXBU_3_z782VmXHORx1DVMkdKsiXOS4XpPZuvS8oXjcIMKLWLBna86M3V8o/pub?gid=1533440285&single=true&output=csv';
+                    const targetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT3-WPhaWoOuxNXsuYtvjWGbALa16b-5P8othvblAnDq2tZx463_OQSEheiZY0ZAA/pub?gid=2102422266&single=true&output=csv';
+                    const climateTargetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSCAQfaB6c1ibsvKmM7F5P6zgvq5tfdvMmnAOQaPdeto37x8VbwTofTjZa6ap6kg/pub?output=csv';
+                    
+                    try {
+                        downloadLink.textContent = 'Downloading...';
+                        downloadLink.style.pointerEvents = 'none';
+                        
+                        const [policyCsv, targetsCsv, climateTargetsCsv] = await Promise.all([
+                            fetch(policyDataUrl).then(r => r.text()),
+                            fetch(targetsDataUrl).then(r => r.text()),
+                            fetch(climateTargetsDataUrl).then(r => r.text())
+                        ]);
+                        
+                        // Parse CSV properly (handle quoted fields with commas)
+                        function parseCSV(text) {
+                            const rows = [];
+                            const lines = text.split('\n');
+                            for (const line of lines) {
+                                if (!line.trim()) continue;
+                                const row = [];
+                                let cell = '';
+                                let inQuotes = false;
+                                for (let i = 0; i < line.length; i++) {
+                                    const char = line[i];
+                                    if (char === '"') {
+                                        inQuotes = !inQuotes;
+                                    } else if (char === ',' && !inQuotes) {
+                                        row.push(cell);
+                                        cell = '';
+                                    } else {
+                                        cell += char;
+                                    }
+                                }
+                                row.push(cell);
+                                rows.push(row);
+                            }
+                            return rows;
+                        }
+                        
+                        const wb = XLSX.utils.book_new();
+                        
+                        const policySheet = XLSX.utils.aoa_to_sheet(parseCSV(policyCsv));
+                        const targetsSheet = XLSX.utils.aoa_to_sheet(parseCSV(targetsCsv));
+                        const climateSheet = XLSX.utils.aoa_to_sheet(parseCSV(climateTargetsCsv));
+                        
+                        XLSX.utils.book_append_sheet(wb, policySheet, 'Policies');
+                        XLSX.utils.book_append_sheet(wb, targetsSheet, 'Targets');
+                        XLSX.utils.book_append_sheet(wb, climateSheet, 'ClimateTargets');
+                        
+                        XLSX.writeFile(wb, 'All_sheets.xlsx');
+                        
+                        downloadLink.textContent = 'here';
+                        downloadLink.style.pointerEvents = 'auto';
+                    } catch (error) {
+                        console.error('Download failed:', error);
+                        alert('Download failed. Please try again.');
+                        downloadLink.textContent = 'here';
+                        downloadLink.style.pointerEvents = 'auto';
+                    }
+                });
+            }
+        });
+    </script>
 
 </body>
 </html>

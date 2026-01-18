@@ -578,9 +578,10 @@ svg.call(zoom as any);
 
 const countryCode2to3 = Object.fromEntries(Object.entries(countryCodeMapping).map(([k, v]) => [v, k]));
 
-const policyDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQmC2tIzO9x7iSsdydqtH0U6Xnha-5qtJUKKBE9Bu3NOO5q9xLMkETcfI4Vwg_6SYvkvHkz1GiCpJWo/pub?gid=257456616&single=true&output=csv';
+const policyDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR254dV56uMYU4Rmi45UNXBU_3_z782VmXHORx1DVMkdKsiXOS4XpPZuvS8oXjcIMKLWLBna86M3V8o/pub?gid=1533440285&single=true&output=csv';
 const targetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT3-WPhaWoOuxNXsuYtvjWGbALa16b-5P8othvblAnDq2tZx463_OQSEheiZY0ZAA/pub?gid=2102422266&single=true&output=csv';
 const climateTargetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSCAQfaB6c1ibsvKmM7F5P6zgvq5tfdvMmnAOQaPdeto37x8VbwTofTjZa6ap6kg/pub?output=csv';
+const evDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThVuVhNHjmjXCZQ3H9ipycRpAeic19lZ8femtB-f_w_8TGyeCGaCcX1TZZo3e4E1mIbJP5OJLqCZzS/pub?output=csv';
 
 const baseUrl = (import.meta as any).env.BASE_URL || '/';
 
@@ -871,14 +872,17 @@ Promise.all([
     d3.json(`${baseUrl}world.geojson`),
     d3.csv(policyDataUrl),
     d3.csv(targetsDataUrl),
-    d3.csv(climateTargetsDataUrl)
-]).then(([geoData, policyCsv, targetsCsv, climateTargetsCsv]: [any, any, any, any]) => {
+    d3.csv(climateTargetsDataUrl),
+    d3.csv(evDataUrl)
+]).then(([geoData, policyCsv, targetsCsv, climateTargetsCsv, evCsv]: [any, any, any, any, any]) => {
     console.log('Data loaded successfully:');
     console.log('Policy CSV rows:', policyCsv.length);
     console.log('Targets CSV rows:', targetsCsv.length);
     console.log('Climate Targets CSV rows:', climateTargetsCsv.length);
+    console.log('EV CSV rows:', evCsv.length);
     console.log('First few targets rows:', targetsCsv.slice(0, 3));
     console.log('First few climate targets rows:', climateTargetsCsv.slice(0, 3));
+    console.log('First few EV rows:', evCsv.slice(0, 3));
     
     // If targets CSV is empty or malformed, use sample data
     if (!targetsCsv || targetsCsv.length === 0 || !targetsCsv[0] || Object.keys(targetsCsv[0]).length < 5) {
@@ -1118,6 +1122,52 @@ Promise.all([
         console.warn("Warning: No policy data was processed. Check if the 'country' column in the spreadsheet is named correctly and if the header row is not sorted with the data.");
     }
 
+    // Process EV data: count "introduced" policies per country
+    // Column A (ISO_code) = ISO 3-letter country code
+    // Column J (policy_changed_detail) = count rows where value is "introduced"
+    console.log("EV CSV columns:", evCsv.columns);
+    
+    // Find the correct column names from the EV CSV
+    const evColumns: string[] = evCsv.columns || [];
+    
+    // Column A (index 0) should be the country code - use ISO_code
+    const evCountryCodeCol = 'ISO_code';
+    
+    // Use policy_changed_detail column (like RE Support policies) to find "introduced" values
+    const evPolicyChangedDetailCol = 'policy_changed_detail';
+    
+    console.log('EV data - using columns:', { evCountryCodeCol, evPolicyChangedDetailCol });
+    
+    // Log unique values in the policy_changed_detail column to see what values exist
+    const uniquePolicyChangedDetailValues = new Set<string>();
+    evCsv.forEach((row: any) => {
+        const val = row[evPolicyChangedDetailCol];
+        if (val) uniquePolicyChangedDetailValues.add(String(val).trim().toLowerCase());
+    });
+    console.log('EV data - unique policy_changed_detail values:', Array.from(uniquePolicyChangedDetailValues));
+    
+    const evData: { [countryCode: string]: number } = evCsv.reduce((acc: { [key: string]: number }, row: any) => {
+        const countryCodeRaw = row[evCountryCodeCol];
+        const policyChangedDetail = row[evPolicyChangedDetailCol];
+        
+        if (!countryCodeRaw) return acc;
+        
+        const countryCode = String(countryCodeRaw).trim().toUpperCase();
+        const policyChangedValue = String(policyChangedDetail || '').trim().toLowerCase();
+        
+        // Only count rows where policy_changed_detail is "introduced"
+        if (policyChangedValue === 'introduced') {
+            if (!acc[countryCode]) {
+                acc[countryCode] = 0;
+            }
+            acc[countryCode]++;
+        }
+        return acc;
+    }, {});
+    
+    console.log('Processed EV data:', Object.keys(evData).length, 'countries');
+    console.log('Sample EV data:', Object.entries(evData).slice(0, 10));
+
     // Process targets data
     console.log("Targets CSV columns:", targetsCsv.columns);
     
@@ -1306,6 +1356,12 @@ Promise.all([
             allData: climateTargetsData,
             colorScale: null, // Will be set below
             minMax: { min: 0, max: 0 } // Will be set below
+        },
+        ev: {
+            data: evData,
+            rawCsv: evCsv,
+            colorScale: null, // Will be set below
+            minMax: { min: 0, max: 0 } // Will be set below
         }
     };
 
@@ -1362,9 +1418,13 @@ Promise.all([
     const targetsColorScale = d3.scaleSequential(d3.interpolateBlues)
         .domain([minTargets, maxTargets]);
 
-    // Create color scale for EV data (placeholder values)
-    const evColorScale = d3.scaleSequential(d3.interpolateReds)
-        .domain([0, 100]);
+    // Create color scale for EV data based on actual data
+    const evCounts = Object.values(evData) as number[];
+    const minEv = evCounts.length > 0 ? (d3.min(evCounts) as number) : 0;
+    const maxEv = evCounts.length > 0 ? (d3.max(evCounts) as number) : 10;
+    // Custom lighter orange scale: from very light peach to medium orange
+    const evColorScale = d3.scaleSequential(d3.interpolateRgb('#fff5eb', '#f97316'))
+        .domain([minEv, maxEv]);
 
     // Create color scale for climate targets
     // REVERSED: Lower values (e.g., -100) represent bigger reductions, so they should be darkest
@@ -1379,7 +1439,8 @@ Promise.all([
     allData.targets.colorScale = targetsColorScale;
     allData.targets.colorScales = targetColorScales;
     allData.targets.minMax = targetMinMax;
-    allData.ev = { colorScale: evColorScale };
+    allData.ev.colorScale = evColorScale;
+    allData.ev.minMax = { min: minEv, max: maxEv };
     allData.climateTargets.colorScale = climateTargetsColorScale;
     allData.climateTargets.minMax = { min: minClimateTarget as number, max: maxClimateTarget as number };
 
@@ -1456,7 +1517,12 @@ Promise.all([
                 return '#b0b0b0';
             }
         } else if (currentMapType === 'ev') {
-            // Placeholder for EV data - will be implemented later
+            // EV Support Policies data
+            const evPolicyData = allData.ev.data || {};
+            const evColorScaleLocal = allData.ev.colorScale;
+            if (countryCode && evPolicyData[countryCode] && evColorScaleLocal) {
+                return evColorScaleLocal(evPolicyData[countryCode]);
+            }
             return '#b0b0b0';
         }
         return '#b0b0b0';
@@ -1510,7 +1576,13 @@ Promise.all([
                 return `<strong>${countryName}</strong><br/>No emission target data`;
             }
         } else if (currentMapType === 'ev') {
-            return `<strong>${countryName}</strong><br/>EV data coming soon`;
+            const evPolicyData = allData.ev.data || {};
+            const evCount = evPolicyData[countryCode];
+            if (evCount !== undefined) {
+                return `<strong>${countryName}</strong><br/>EV Support Policies: ${evCount}`;
+            } else {
+                return `<strong>${countryName}</strong><br/>No EV policy data`;
+            }
         }
         return `<strong>${countryName}</strong>`;
     }
@@ -1540,9 +1612,10 @@ Promise.all([
                 maxValue = minClimateTarget;
                 break;
             case 'ev':
-                interpolateFunction = d3.interpolateReds;
-                minValue = 0;
-                maxValue = 100;
+                // Custom lighter orange: from very light peach to medium orange
+                interpolateFunction = (t: number) => d3.interpolateRgb('#fff5eb', '#f97316')(t);
+                minValue = minEv;
+                maxValue = maxEv;
                 break;
             default:
                 interpolateFunction = d3.interpolateGreens;
@@ -1782,6 +1855,19 @@ Promise.all([
                 const wsClimate = XLSX.utils.json_to_sheet(rowsClimate, { header: headersClimate });
                 XLSX.utils.book_append_sheet(wb, wsClimate, 'ClimateTargets');
 
+                // EV Support Policies (filtered by ISO3 at first column)
+                const evColsExport = evCsv.columns || [];
+                const evCountryColExport = evColsExport[0] || 'country_code';
+                const rowsEv = evCsv.filter((row: any) => {
+                    const code = String(row[evCountryColExport] || '').trim().toUpperCase();
+                    return code === countryCode3;
+                });
+                const headersEv = (evCsv.columns && evCsv.columns.length > 0)
+                    ? evCsv.columns
+                    : Array.from(new Set(rowsEv.flatMap((r: any) => Object.keys(r))));
+                const wsEv = XLSX.utils.json_to_sheet(rowsEv, { header: headersEv });
+                XLSX.utils.book_append_sheet(wb, wsEv, 'EV_Support');
+
                 const safeName = countryName.replace(/[^\w\-]+/g, '_');
                 XLSX.writeFile(wb, `${safeName}_data.xlsx`);
             });
@@ -1824,6 +1910,7 @@ Promise.all([
                 addSheet('Policies', policyCsv as any);
                 addSheet('Targets', targetsCsv as any);
                 addSheet('ClimateTargets', climateTargetsCsv as any);
+                addSheet('EV_Support', evCsv as any);
 
                 XLSX.writeFile(wb, `All_sheets.xlsx`);
             });
