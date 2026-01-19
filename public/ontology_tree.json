@@ -75,7 +75,7 @@
                   },
                   {
                     "name": "Tax incentive",
-                    "definition": "A tax incentive is a fiscal incentive where the government reduces or exempts selected activities, goods or actors from taxes",
+                    "definition": "A tax incentive is a fiscal incentive where the government reduces or exempts selected activities, goods or actors from taxes.",
                     "children": [
                       {
                         "name": "Tax deduction",
@@ -111,8 +111,8 @@
                     ]
                   },
                   {
-                    "name": "Subsidy removal",
-                    "definition": "subsidy removal abolishes or reduces existing subsidies for environmentally harmful activities.",
+                    "name": "Subsidy removal: subsidy removal abolishes or reduces existing",
+                    "definition": "Subsidy removal: subsidy removal abolishes or reduces existing subsidies for environmentally harmful activities.",
                     "children": [
                       {
                         "name": "Removal of fossil fuel subsidies",
@@ -326,6 +326,11 @@
                 "definition": "A standard is a regulatory policy instrument that defines legal requirements for actors, products, and processes.",
                 "children": [
                   {
+                    "name": "Technology Standard",
+                    "definition": "A technology standard is a standard that requires a specific technology, process, or product. They typically take one of four forms: requirements for specific pollution abatement technologies; requirements for specific production methods; requirements for specific goods such as energy efficient appliances; or phase-out mandates.",
+                    "children": []
+                  },
+                  {
                     "name": "Performance standard",
                     "definition": "A performance standard is a standard that sets required levels of performance (in terms of emissions, efficiency etc), but actors are free to choose the technologies and methods for how they will do so.",
                     "children": [
@@ -337,11 +342,6 @@
                             "name": "Product emissions standard",
                             "definition": "A product emissions standard is an emissions standard for specific products to limit their emissions/pollution.",
                             "children": [
-                              {
-                                "name": "Fuel air pollution or emissions standard",
-                                "definition": "A fuel standard is a product emissions standard that sets out emissions and pollution requirements for fuel.",
-                                "children": []
-                              },
                               {
                                 "name": "Vehicle air pollution or emissions standard",
                                 "definition": "A vehicle air pollution standard is a product emissions standards for vehicles, for the maximum emission of substances such as greenhouse gas emissions, hydrocarbons, oxides of nitrogen and particulate matter they can emit.",
@@ -397,8 +397,8 @@
                             "children": []
                           },
                           {
-                            "name": "Sectoral energy use cap",
-                            "definition": "a sectoral energy use cap is an energy use cap that sets the maximum amount for how much energy actors in a certain sector are allowed to consume. This can be (but is not always) a regulatory element of efficiency-related trading systems.",
+                            "name": "Sectoral energy use cap: a sectoral energy use cap",
+                            "definition": "Sectoral energy use cap: a sectoral energy use cap is an energy use cap that sets the maximum amount for how much energy actors in a certain sector are allowed to consume. This can be (but is not always) a regulatory element of efficiency-related trading systems.",
                             "children": []
                           }
                         ]
@@ -436,13 +436,13 @@
                         ]
                       },
                       {
-                        "name": "Purchasing requirement / quota",
-                        "definition": "(demand-side quota): A purchasing requirement/quota is a quota which requires an actor to acquire a certain share of a clean good or service.",
+                        "name": "Purchasing requirement / quota: (demand-side quota): A purchasing",
+                        "definition": "Purchasing requirement / quota: (demand-side quota): A purchasing requirement/quota is a quota which requires an actor to acquire a certain share of a clean good or service.",
                         "children": []
                       },
                       {
-                        "name": "Production requirement / quota",
-                        "definition": "(supply-side quota): A production requirement/quota is a quota which requires an actor to provide a certain share of a clean good or service. Example: China's supply-side renewables portfolio standards.",
+                        "name": "Production requirement / quota: (supply-side quota): A production",
+                        "definition": "Production requirement / quota: (supply-side quota): A production requirement/quota is a quota which requires an actor to provide a certain share of a clean good or service. Example: China's supply-side renewables portfolio standards.",
                         "children": []
                       }
                     ]
@@ -484,8 +484,8 @@
                     "children": []
                   },
                   {
-                    "name": "Offsetting rules",
-                    "definition": "offsetting rules are standards which establish GHG emission reductions crediting and offsetting regulations. Example: rules that prohibit using offsetting as part of emissions calculations.",
+                    "name": "Offsetting rules: offsetting rules",
+                    "definition": "Offsetting rules: offsetting rules are standards which establish GHG emission reductions crediting and offsetting regulations. Example: rules that prohibit using offsetting as part of emissions calculations.",
                     "children": []
                   },
                   {

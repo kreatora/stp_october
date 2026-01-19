@@ -942,7 +942,10 @@ Promise.all([
     // Add aliases so data still attaches to the correct country.
     const POLICY_COUNTRY_NAME_ALIASES: Record<string, string> = {
         // GeoJSON uses "Czech Republic"
-        'czechia': 'Czech Republic'
+        'czechia': 'Czech Republic',
+        // GeoJSON uses "England" for UK
+        'united kingdom of great britain and northern ireland': 'England',
+        'united kingdom': 'England'
     };
 
     function normalizePolicyCountryName(raw: any): string | null {
@@ -1055,11 +1058,12 @@ Promise.all([
         return 'other';
     };
 
-    // Collect events grouped by country and measure
+    // Collect events grouped by country and measure (still needed for deactivation logic in popups)
     const eventsByCountryMeasure: { [country: string]: { [measure: string]: Array<{ year: number, type: 'activate' | 'deactivate' }> } } = {};
-    let globalMinYear: number | null = null;
-    let globalMaxYear: number | null = null;
-
+    
+    // Build time series data: only show bars for years where actual data exists in CSV
+    const timeSeriesData: { [country: string]: { [year: number]: { [measure: string]: number } } } = {};
+    
     policyCsv.forEach((row: any) => {
         const countryName = normalizePolicyCountryName(row.country);
         const measure = row.measure || 'Unknown';
@@ -1068,54 +1072,21 @@ Promise.all([
         const yearNum = rawYear != null ? Number(rawYear) : NaN;
         const detailStr = rawDetail != null ? String(rawDetail) : '';
         if (!countryName || !Number.isFinite(yearNum)) return;
-        const eventType = classifyEvent(detailStr);
-        if (eventType === 'other') return; // skip non-state-changing events
         const countryCode3 = countryNameMap[countryName];
         if (!countryCode3) return;
 
-        if (!eventsByCountryMeasure[countryCode3]) eventsByCountryMeasure[countryCode3] = {};
-        if (!eventsByCountryMeasure[countryCode3][measure]) eventsByCountryMeasure[countryCode3][measure] = [];
-        eventsByCountryMeasure[countryCode3][measure].push({ year: yearNum, type: eventType });
+        // Track events for deactivation logic (used in popups)
+        const eventType = classifyEvent(detailStr);
+        if (eventType !== 'other') {
+            if (!eventsByCountryMeasure[countryCode3]) eventsByCountryMeasure[countryCode3] = {};
+            if (!eventsByCountryMeasure[countryCode3][measure]) eventsByCountryMeasure[countryCode3][measure] = [];
+            eventsByCountryMeasure[countryCode3][measure].push({ year: yearNum, type: eventType });
+        }
 
-        if (globalMinYear === null || yearNum < globalMinYear) globalMinYear = yearNum;
-        if (globalMaxYear === null || yearNum > globalMaxYear) globalMaxYear = yearNum;
-    });
-
-    // Ensure we have a sensible year range; extend to 2025 for visibility
-    const minYearForSeries = globalMinYear != null ? globalMinYear : 1990;
-    const maxYearForSeries = Math.max(globalMaxYear != null ? globalMaxYear : minYearForSeries, 2025);
-
-    // Expand events into yearly active flags per country and measure
-    const timeSeriesData: { [country: string]: { [year: number]: { [measure: string]: number } } } = {};
-    Object.entries(eventsByCountryMeasure).forEach(([countryCode3, measuresMap]) => {
+        // Only show bar if there's actual data for this country+measure+year
         if (!timeSeriesData[countryCode3]) timeSeriesData[countryCode3] = {};
-
-        // For each measure, compute active state over years
-        Object.entries(measuresMap).forEach(([measure, events]) => {
-            // Sort events by year ascending
-            events.sort((a, b) => a.year - b.year);
-            let active = false;
-            const eventsByYear: { [y: number]: Array<'activate' | 'deactivate'> } = {};
-            events.forEach(e => {
-                if (!eventsByYear[e.year]) eventsByYear[e.year] = [];
-                eventsByYear[e.year].push(e.type);
-            });
-
-            for (let y = minYearForSeries; y <= maxYearForSeries; y++) {
-                // Apply all events occurring in year y
-                const changes = eventsByYear[y] || [];
-                if (changes.length > 0) {
-                    // If both types occur in same year, last one wins by order in data; use reduce
-                    changes.forEach(ch => {
-                        if (ch === 'activate') active = true;
-                        else if (ch === 'deactivate') active = false;
-                    });
-                }
-                if (!timeSeriesData[countryCode3][y]) timeSeriesData[countryCode3][y] = {};
-                // Represent presence of at least one active policy of this measure as 1, else 0
-                timeSeriesData[countryCode3][y][measure] = active ? 1 : 0;
-            }
-        });
+        if (!timeSeriesData[countryCode3][yearNum]) timeSeriesData[countryCode3][yearNum] = {};
+        timeSeriesData[countryCode3][yearNum][measure] = 1;
     });
 
     if (Object.keys(policyData).length === 0) {
@@ -3257,7 +3228,7 @@ Promise.all([
                                         const rounded = base.replace(/(?<![\w-])(-?\d*\.?\d+)(?![\w-])/g, round3);
                                         return rounded.replace(/\b([a-z]{3})\b/g, (m, c) => currencyCodes.has(c) ? c.toUpperCase() : m);
                                     })()
-                                    : `detail not available<span style="font-size:${isNarrow ? '10px' : '11px'}; color:#94a3b8; margin-left:6px;"> · see dataset</span>`;
+                                    : '';
                                 const formatCurrencyCode = (s: string) => String(s || '').trim() ? String(s || '').trim().toUpperCase() : '-';
                                 const formatDetailText = (s: string) => {
                                     const base = String(s || '').trim();
@@ -3278,11 +3249,62 @@ Promise.all([
                                 const percentDetailVal = formatDetailText(f('level_1_percent_type_detail') || '');
                                 const unitValRaw = String(f('level_1_unit') || '').trim();
                                 const unitDisplayVal = unitValRaw ? unitValRaw : percentDetailVal;
+                                // Check if this is a soft loan to show interest rate
+                                const isSoftLoan = measure.toLowerCase().includes('soft loan');
+                                const loanInterestRateRaw = f('loan_interest_rate') || '';
+                                const loanInterestRate = loanInterestRateRaw ? parseFloat(loanInterestRateRaw).toFixed(2) : '';
+                                // Check if this is TGC to show TGC-specific fields
+                                const isTGC = measure.toLowerCase() === 'tgc';
+                                const tgcPriceCurrency = f('TGC_price_currency') || '';
+                                const tgcPriceMaxRaw = f('TGC_price_max') || '';
+                                const tgcPriceMinRaw = f('TGC_price_min') || '';
+                                const tgcPriceMax = tgcPriceMaxRaw ? parseFloat(tgcPriceMaxRaw).toFixed(2) : '';
+                                const tgcPriceMin = tgcPriceMinRaw ? parseFloat(tgcPriceMinRaw).toFixed(2) : '';
+                                const tgcPriceUnit = f('TGC_price_unit') || '';
+                                const tgcTargetLevelRaw = f('TGC_target_level') || '';
+                                const tgcTargetLevel = tgcTargetLevelRaw ? parseFloat(tgcTargetLevelRaw).toFixed(2) : '';
+                                const tgcTargetLevelUnit = f('TGC_target_level_unit') || '';
+                                
+                                let tgcHtml = '';
+                                if (isTGC) {
+                                    if (tgcPriceMin || tgcPriceMax) {
+                                        const priceRange = tgcPriceMin && tgcPriceMax ? `${tgcPriceMin} - ${tgcPriceMax}` : (tgcPriceMin || tgcPriceMax);
+                                        tgcHtml += `<div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Price: ${priceRange}${tgcPriceCurrency ? ' ' + tgcPriceCurrency : ''}${tgcPriceUnit ? ' / ' + tgcPriceUnit : ''}</div>`;
+                                    }
+                                    if (tgcTargetLevel) {
+                                        tgcHtml += `<div style="font-weight:600; color:#374151; font-size:${isNarrow ? '13px' : '14px'};">Target: ${tgcTargetLevel}${tgcTargetLevelUnit ? ' ' + tgcTargetLevelUnit : ''}</div>`;
+                                    }
+                                }
+                                
+                                // Check if this is a tender and show tender_amount_contracted if no level_1
+                                const isTender = measure.toLowerCase().includes('tender');
+                                let tenderHtml = '';
+                                if (isTender && !titleVal) {
+                                    const tenderAmount = f('tender_amount_contracted') || '';
+                                    const tenderUnit = (f('tender_amount_contracted_unit') || '').toLowerCase();
+                                    if (tenderAmount) {
+                                        let amount = parseFloat(tenderAmount);
+                                        let displayUnit = tenderUnit;
+                                        // Convert kW to MW
+                                        if (tenderUnit === 'kw') {
+                                            amount = amount / 1000;
+                                            displayUnit = 'MW';
+                                        } else if (tenderUnit === 'mw') {
+                                            displayUnit = 'MW';
+                                        }
+                                        const formattedAmount = amount.toFixed(2);
+                                        tenderHtml = `<div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Tendered amount: ${formattedAmount}${displayUnit ? ' ' + displayUnit : ''}</div>`;
+                                    }
+                                }
+                                
                                 item.innerHTML = `
-                                    <div style="font-weight:600; color:#374151; font-size:${isNarrow ? '13px' : '14px'};">${titleHtml}</div>
+                                    ${tgcHtml}
+                                    ${titleHtml ? `<div style="font-weight:600; color:#374151; font-size:${isNarrow ? '13px' : '14px'};">${titleHtml}</div>` : ''}
                                     <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Tech: ${formatTechType(f('Technology_type') || '')}</div>
-                                    <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Currency: ${currencyVal}</div>
-                                    <div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Unit: ${unitDisplayVal || '-'}</div>
+                                    ${currencyVal && currencyVal !== '-' ? `<div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Currency: ${currencyVal}</div>` : ''}
+                                    ${unitDisplayVal ? `<div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Unit: ${unitDisplayVal}</div>` : ''}
+                                    ${isSoftLoan && loanInterestRate ? `<div style="font-size:${isNarrow ? '11px' : '12px'}; color:#4b5563;">Interest Rate: ${loanInterestRate}%</div>` : ''}
+                                    ${tenderHtml}
                                 `;
                             }
                             list.appendChild(item);
@@ -3341,22 +3363,24 @@ Promise.all([
                                 const code = String(countryCodeRaw).trim().toUpperCase();
                                 if (policyChangedDetail !== 'introduced') return false;
                                 if (code !== countryCode3 || m !== measure) return false;
+                                // Show policies that are active in the clicked year (introduced on or before)
                                 if (!Number.isFinite(introducedYear) || introducedYear > year) return false;
                                 return true;
                             });
                         } else {
                             // RE Support mode: filter from policyCsv
-                            rows = policyCsv.filter((row: any) => {
+                            // Get all rows for this country+measure, then find the most recent one at or before clicked year
+                            const allMatchingRows = policyCsv.filter((row: any) => {
                                 const cName = normalizePolicyCountryName(row.country);
                                 const m = row.measure || 'Unknown';
-                                const introducedYear = Number(row.year);
-                                if (!isIntroduced(row)) return false;
                                 const code3 = countryNameMap[cName || ''];
-                                if (code3 !== countryCode3 || m !== measure) return false;
-                                if (!Number.isFinite(introducedYear) || introducedYear > year) return false;
-                                const events = (eventsByCountryMeasure[countryCode3] && eventsByCountryMeasure[countryCode3][measure]) || [];
-                                const deactivatedBeforeOrInSelected = events.some(e => e.type === 'deactivate' && e.year > introducedYear && e.year <= year);
-                                return !deactivatedBeforeOrInSelected;
+                                return code3 === countryCode3 && m === measure;
+                            });
+                            // Find rows at or before the clicked year
+                            // Show ALL rows that match the exact clicked year
+                            rows = allMatchingRows.filter((row: any) => {
+                                const rowYear = Number(row.year);
+                                return Number.isFinite(rowYear) && rowYear === year;
                             });
                         }
                         showPolicyDetailPopup(measure, year, rows, isEvMode);
