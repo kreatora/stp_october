@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
-import * as XLSX from 'xlsx';
+import * as XLSX_ from 'xlsx';
+const XLSX = (XLSX_ as any).default || XLSX_;
 import { geoMercator, geoPath } from 'd3-geo';
 import polylabel from 'polylabel';
 
@@ -578,12 +579,17 @@ svg.call(zoom as any);
 
 const countryCode2to3 = Object.fromEntries(Object.entries(countryCodeMapping).map(([k, v]) => [v, k]));
 
-const policyDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRSmQv60PxLi78KuDkiUcVVxcUuA1jhGnSxWsX2iuuJU6CK9-ffo37KYZ385DKbLU9Q7YK7-YHwguYt/pub?output=csv';
-const targetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT3-WPhaWoOuxNXsuYtvjWGbALa16b-5P8othvblAnDq2tZx463_OQSEheiZY0ZAA/pub?gid=2102422266&single=true&output=csv';
-const climateTargetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSCAQfaB6c1ibsvKmM7F5P6zgvq5tfdvMmnAOQaPdeto37x8VbwTofTjZa6ap6kg/pub?output=csv';
-const evDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThVuVhNHjmjXCZQ3H9ipycRpAeic19lZ8femtB-f_w_8TGyeCGaCcX1TZZo3e4E1mIbJP5OJLqCZzS/pub?output=csv';
-
 const baseUrl = (import.meta as any).env.BASE_URL || '/';
+
+const policyDataUrl = `${baseUrl}data/policy_data.xlsx`;
+const targetsDataUrl = `${baseUrl}data/targets_data.csv`;
+const climateTargetsDataUrl = `${baseUrl}data/climate_targets_data.csv`;
+const evDataUrl = `${baseUrl}data/ev_data.csv`;
+
+const CITATION_POLICY = "Weko, S., Bold, F., Chaianong, A., Günkördü, D., Lebedeva, D., Malhotra, P., Milioritsas, I., Weiß, J., and Lilliestam, J. (2026): Data on policy support for renewable electricity (Version 1, January 2026). Friedrich-Alexander-Universität Erlangen-Nürnberg. DOI: 10.5281/zenodo.18327812";
+const CITATION_TARGETS = "Chaianong, A., Malhotra P., Milioritsas, I., Weko, S., and Lilliestam, J. (2025): Data on renewable electricity targets (Version 1, February 2025). Sustainability Transition Policy Group, Friedrich-Alexander-Universität Erlangen-Nürnberg. DOI: 10.5281/zenodo.15476149.";
+const CITATION_CLIMATE = "Chaianong, A., Malhotra P., Milioritsas, I., Weko, S., and Lilliestam, J. (2025): Data on climate targets (Version 1, February 2025). Sustainability Transition Policy Group, Friedrich-Alexander-Universität Erlangen-Nürnberg. DOI: 10.5281/zenodo.15476049.";
+const CITATION_EV = "Weko, S., Bold, F., Chaianong, A., Günkördü, D., Lebedeva, D., Malhotra, P., Milioritsas, I., Weiß, J., and Lilliestam, J. (2026): Data on policy support for electric vehicles (Version 1, January 2026). Friedrich-Alexander-Universität Erlangen-Nürnberg. DOI: 10.5281/zenodo.18328109.";
 
 // Global variables to store all data
 let currentMapType: 'policies' | 'ev' | 'targets' | 'climateTargets' = 'policies';
@@ -704,7 +710,17 @@ function initializeTargetsSubmenu() {
             option.className = 'submenu-option';
             const displayName = getTargetTypeDisplayName(targetType);
             console.log(`Target type "${targetType}" → Display name "${displayName}"`);
-            option.textContent = displayName;
+            
+            // Add explanation for specific target types
+            let explanation = '';
+            const normalizedType = targetType.trim().toLowerCase();
+            if (normalizedType === 'electricity') {
+                explanation = '<br><span style="font-size: 0.75em; opacity: 0.8; font-weight: normal;">% of renewable electricity in a power system generation</span>';
+            } else if (normalizedType === 'final energy') {
+                explanation = '<br><span style="font-size: 0.75em; opacity: 0.8; font-weight: normal;">% of renewable energy in final energy consumption</span>';
+            }
+
+            option.innerHTML = `${displayName}${explanation}`;
             option.dataset.targetType = targetType;
             
             // Set active state for current target type
@@ -870,7 +886,28 @@ showLoadingIndicator();
 
 Promise.all([
     d3.json(`${baseUrl}world.geojson`),
-    d3.csv(policyDataUrl),
+    fetch(policyDataUrl)
+        .then(r => {
+            if (!r.ok) throw new Error(`Failed to fetch policy data: ${r.statusText}`);
+            return r.arrayBuffer();
+        })
+        .then(ab => {
+            try {
+                console.log("Parsing policy data with XLSX...");
+                const wb = XLSX.read(ab, { type: 'array' });
+                const firstSheetName = wb.SheetNames[0];
+                const ws = wb.Sheets[firstSheetName];
+                // Use sheet_to_csv to handle conversions (handles quotes, commas etc.)
+                const csvText = XLSX.utils.sheet_to_csv(ws);
+                console.log("Converted policy sheet to CSV text, length:", csvText.length);
+                const parsed = d3.csvParse(csvText);
+                console.log("Parsed policy data rows:", parsed.length);
+                return parsed;
+            } catch (e) {
+                console.error("Error parsing policy XLSX:", e);
+                return []; // Return empty array on failure to avoid crashing Promise.all
+            }
+        }),
     d3.csv(targetsDataUrl),
     d3.csv(climateTargetsDataUrl),
     d3.csv(evDataUrl)
@@ -916,11 +953,25 @@ Promise.all([
     // Determine the policy_changed_detail column (case-insensitive). Fallback to 'policy_changed'.
     const policyChangedDetailColumnName = (() => {
         const cols = policyCsv.columns || [];
-        const byDetail = cols.find((n: string) => n && n.trim().toLowerCase() === 'policy_changed_detail');
+        const byDetail = cols.find((n: string) => n && ['policy_changed_detail', 'status', 'change_detail'].includes(n.trim().toLowerCase()));
         if (byDetail) return byDetail;
         const byChanged = cols.find((n: string) => n && n.trim().toLowerCase() === 'policy_changed');
         return byChanged || null;
     })();
+
+    // Dynamic column detection for other key fields with expanded search terms
+    const countryColumnName = (policyCsv.columns || []).find((n: string) => n && ['country', 'nation', 'member state', 'iso', 'code', 'country_code'].includes(n.trim().toLowerCase())) || 'country';
+    const measureColumnName = (policyCsv.columns || []).find((n: string) => n && ['measure', 'policy type', 'type', 'sector', 'policy_type'].includes(n.trim().toLowerCase())) || 'measure';
+    const techTypeColumnName = (policyCsv.columns || []).find((n: string) => n && ['technology_type', 'technology', 'tech', 'source'].includes(n.trim().toLowerCase())) || 'Technology_type';
+    const yearColumnName = (policyCsv.columns || []).find((n: string) => n && ['year', 'date', 'start year', 'start_year', 'implementation year'].includes(n.trim().toLowerCase())) || 'year';
+
+    console.log('Resolved column names:', {
+        policyChangedDetail: policyChangedDetailColumnName,
+        country: countryColumnName,
+        measure: measureColumnName,
+        techType: techTypeColumnName,
+        year: yearColumnName
+    });
 
     function isIntroduced(row: any): boolean {
         if (!policyChangedDetailColumnName) {
@@ -960,9 +1011,9 @@ Promise.all([
     const policyTypesSet = new Set<string>();
     const technologyTypesSet = new Set<string>();
     policyCsv.forEach((row: any) => {
-        const measure = row.measure ? String(row.measure) : 'Unknown';
+        const measure = row[measureColumnName] ? String(row[measureColumnName]) : 'Unknown';
         policyTypesSet.add(measure);
-        const tech = row.Technology_type ? String(row.Technology_type) : 'Unknown';
+        const tech = row[techTypeColumnName] ? String(row[techTypeColumnName]) : 'Unknown';
         technologyTypesSet.add(tech);
     });
     const allPolicyTypes = Array.from(policyTypesSet).sort();
@@ -1010,7 +1061,7 @@ Promise.all([
     const policyData = policyCsv.reduce((acc: { [key: string]: number }, row: any) => {
         // Only count policies with Status === 'introduced'
         if (!isIntroduced(row)) return acc;
-        const countryName = normalizePolicyCountryName(row.country);
+        const countryName = normalizePolicyCountryName(row[countryColumnName]);
         if (countryName) {
             const countryCode3 = countryNameMap[countryName];
             if (countryCode3) {
@@ -1029,8 +1080,8 @@ Promise.all([
     const policyTypeData = policyCsv.reduce((acc: { [key: string]: { [key: string]: number } }, row: any) => {
         // Only include policies with Status === 'introduced'
         if (!isIntroduced(row)) return acc;
-        const countryName = normalizePolicyCountryName(row.country);
-        const technologyType = row.Technology_type || 'Unknown';
+        const countryName = normalizePolicyCountryName(row[countryColumnName]);
+        const technologyType = row[techTypeColumnName] || 'Unknown';
         
         if (countryName) {
             const countryCode3 = countryNameMap[countryName];
@@ -1065,9 +1116,9 @@ Promise.all([
     const timeSeriesData: { [country: string]: { [year: number]: { [measure: string]: number } } } = {};
     
     policyCsv.forEach((row: any) => {
-        const countryName = normalizePolicyCountryName(row.country);
-        const measure = row.measure || 'Unknown';
-        const rawYear = row.year;
+        const countryName = normalizePolicyCountryName(row[countryColumnName]);
+        const measure = row[measureColumnName] || 'Unknown';
+        const rawYear = row[yearColumnName];
         const rawDetail = policyChangedDetailColumnName ? row[policyChangedDetailColumnName] : null;
         const yearNum = rawYear != null ? Number(rawYear) : NaN;
         const detailStr = rawDetail != null ? String(rawDetail) : '';
@@ -1101,13 +1152,20 @@ Promise.all([
     // Find the correct column names from the EV CSV
     const evColumns: string[] = evCsv.columns || [];
     
-    // Column A (index 0) should be the country code - use ISO_code
-    const evCountryCodeCol = 'ISO_code';
+    // Dynamic column detection for EV data
+    const evCountryCodeCol = evColumns.find(c => c && ['iso_code', 'country_code', 'code', 'country'].includes(c.trim().toLowerCase())) || 'ISO_code';
+    const evPolicyChangedDetailCol = evColumns.find(c => c && ['policy_changed_detail', 'status', 'change_detail'].includes(c.trim().toLowerCase())) || 'policy_changed_detail';
+    const evMeasureCol = evColumns.find(c => c && ['measure', 'policy_type', 'type'].includes(c.trim().toLowerCase())) || 'measure';
+    const evLevel1Col = evColumns.find(c => c && ['level_1', 'level1'].includes(c.trim().toLowerCase())) || 'level_1';
+    const evUnit1Col = evColumns.find(c => c && ['instrument_level1_unit', 'unit1', 'unit'].includes(c.trim().toLowerCase())) || 'instrument_level1_unit';
+    const evYearCol = evColumns.find(c => c && ['start_year', 'year', 'date'].includes(c.trim().toLowerCase())) || 'start_year';
     
-    // Use policy_changed_detail column (like RE Support policies) to find "introduced" values
-    const evPolicyChangedDetailCol = 'policy_changed_detail';
-    
-    console.log('EV data - using columns:', { evCountryCodeCol, evPolicyChangedDetailCol });
+    console.log('EV data - using columns:', { 
+        evCountryCodeCol, 
+        evPolicyChangedDetailCol,
+        evMeasureCol,
+        evYearCol 
+    });
     
     // Log unique values in the policy_changed_detail column to see what values exist
     const uniquePolicyChangedDetailValues = new Set<string>();
@@ -1141,10 +1199,6 @@ Promise.all([
 
     // Process EV policy types (measure column - column F) per country for pie charts
     // Using actual column names from the EV CSV
-    const evMeasureCol = 'measure'; // Column F
-    const evLevel1Col = 'level_1'; // Level column (was level1)
-    const evUnit1Col = 'instrument_level1_unit'; // Unit column (was unit1)
-    const evYearCol = 'start_year'; // Year column (was year)
     
     console.log('EV data - using columns for dashboard:', { evMeasureCol, evLevel1Col, evUnit1Col, evYearCol });
     
@@ -1186,10 +1240,10 @@ Promise.all([
     
     // Debug: log first few rows to see column values
     console.log('EV time series debug - first 3 rows:', evCsv.slice(0, 3).map((row: any) => ({
-        ISO_code: row['ISO_code'],
-        measure: row['measure'],
-        start_year: row['start_year'],
-        policy_changed_detail: row['policy_changed_detail']
+        ISO_code: row[evCountryCodeCol],
+        measure: row[evMeasureCol],
+        start_year: row[evYearCol],
+        policy_changed_detail: row[evPolicyChangedDetailCol]
     })));
     
     evCsv.forEach((row: any) => {
@@ -1269,23 +1323,31 @@ Promise.all([
     const allTargetsDataByCountry: { [countryCode: string]: any[] } = {}; // Store ALL targets for each country
     const allTargetTypes = new Set<string>();
     
+    // Dynamic column detection for Targets
+    const targetsColumns = targetsCsv.columns || [];
+    const tCountryCodeCol = targetsColumns.find((c: string) => c && ['country_code', 'iso_code', 'code'].includes(c.trim().toLowerCase())) || 'Country_code';
+    const tDecisionYearCol = targetsColumns.find((c: string) => c && ['year_decision', 'decision_year'].includes(c.trim().toLowerCase())) || 'Year_decision';
+    const tTargetYearCol = targetsColumns.find((c: string) => c && ['year_target', 'target_year'].includes(c.trim().toLowerCase())) || 'Year_target';
+    const tTargetTypeCol = targetsColumns.find((c: string) => c && ['target_type', 'type'].includes(c.trim().toLowerCase())) || 'Target_type';
+    const tTargetConsistentCol = targetsColumns.find((c: string) => c && ['target_consistent', 'consistent', 'target_value', 'value'].includes(c.trim().toLowerCase())) || 'Target_consistent';
+
+    console.log('Targets data - using columns:', { tCountryCodeCol, tDecisionYearCol, tTargetYearCol, tTargetTypeCol, tTargetConsistentCol });
+    
     targetsCsv.forEach((row: any, index: number) => {
         // New RE targets CSV structure (read by column names for stability):
-        // Country_code, Year_decision, Year_target, Year_latest_target, Target_type, Target_consistent
-        const countryCode3Raw = row.Country_code || row[Object.keys(row)[0]];
+        const countryCode3Raw = row[tCountryCodeCol] || row[Object.keys(row)[0]];
         const countryCode3 = String(countryCode3Raw ?? '').trim().toUpperCase();
-        const decisionYearRaw = row.Year_decision;
-        const targetYearRaw = row.Year_target; // Use Year_target column for the actual target year
-        const rawTargetType = row.Target_type;
+        const decisionYearRaw = row[tDecisionYearCol];
+        const targetYearRaw = row[tTargetYearCol]; 
+        const rawTargetType = row[tTargetTypeCol];
         const targetType = canonicalRenewableTargetType(rawTargetType);
-        const targetConsistent = row.Target_consistent;
+        const targetConsistent = row[tTargetConsistentCol];
 
         if (index < 5) {
             console.log(`Row ${index}:`, {
                 countryCode3: countryCode3Raw,
                 Year_decision: decisionYearRaw,
-                Year_target: row.Year_target,
-                Year_latest_target: row.Year_latest_target,
+                Year_target: targetYearRaw,
                 Target_type: rawTargetType,
                 Target_consistent: targetConsistent,
                 allKeys: Object.keys(row)
@@ -1355,29 +1417,39 @@ Promise.all([
 
     // Process climate targets data (EU only)
     console.log("Climate Targets CSV columns:", climateTargetsCsv.columns);
+
+    // Dynamic column detection for Climate Targets
+    const ctColumns = climateTargetsCsv.columns || [];
+    const ctCountryCodeCol = ctColumns.find((c: string) => c && ['country_code', 'iso_code', 'code'].includes(c.trim().toLowerCase())) || 'Country_code';
+    const ctYearDecisionCol = ctColumns.find((c: string) => c && ['year_decision', 'decision_year'].includes(c.trim().toLowerCase())) || 'Year_decision';
+    const ctYearTargetCol = ctColumns.find((c: string) => c && ['year_target', 'target_year'].includes(c.trim().toLowerCase())) || 'Year_target';
+    
+    // Explicitly prioritize Target_consistent_all over Target_consistent
+    const ctTargetConsistentCol = ctColumns.find((c: string) => c && c.trim().toLowerCase() === 'target_consistent_all') 
+        || ctColumns.find((c: string) => c && ['target_consistent', 'target_value'].includes(c.trim().toLowerCase())) 
+        || 'Target_consistent_all';
+        
+    const ctTargetUnitCol = ctColumns.find((c: string) => c && ['target_unit', 'unit', 'target_unit'].includes(c.trim().toLowerCase())) || 'Target_unit';
+
+    console.log('Climate Targets - using columns:', { 
+        ctCountryCodeCol, 
+        ctYearDecisionCol, 
+        ctYearTargetCol, 
+        ctTargetConsistentCol, 
+        ctTargetUnitCol 
+    });
     
     const climateTargetsData: { [countryCode: string]: any[] } = {};
     
     climateTargetsCsv.forEach((row: any, index: number) => {
         // New CSV structure: use column R "Target_consistent_all" for the value
         // (sheet includes many columns; we read by name for stability)
-        const countryCode3Raw = row.Country_code || row[Object.keys(row)[0]];
+        const countryCode3Raw = row[ctCountryCodeCol] || row[Object.keys(row)[0]];
         const countryCode3 = String(countryCode3Raw ?? '').trim().toUpperCase();
-        const yearDecision = row.Year_decision;
-        const yearTarget = row.Year_target;
-        const targetConsistentAll = row.Target_consistent_all ?? row.Target_consistent_all?.toString?.();
-        const targetUnit = row.Target_unit;
-        
-        if (index < 5) {
-            console.log(`Climate Target Row ${index}:`, {
-                countryCode3: countryCode3Raw,
-                yearDecision,
-                yearTarget,
-                targetConsistentAll,
-                targetUnit,
-                allKeys: Object.keys(row)
-            });
-        }
+        const yearDecision = row[ctYearDecisionCol];
+        const yearTarget = row[ctYearTargetCol];
+        const targetConsistentAll = row[ctTargetConsistentCol] ?? row[ctTargetConsistentCol]?.toString?.();
+        const targetUnit = row[ctTargetUnitCol];
         
         // Process climate targets:
         // - EU countries only
@@ -1854,11 +1926,16 @@ Promise.all([
 			);
 		
 		// Determine if we have any data to show based on mode
-		const hasAnyData = isEvModeEarly 
-			? (hasTargetsDataEarly || hasEvTimeSeriesDataEarly) // EV mode: targets OR EV time series
-			: (hasPieDataEarly || hasTimeSeriesEarly || hasTargetsDataEarly || hasClimateTargetsData); // RE mode
-		
-		if (!hasAnyData) {
+        const hasAnyData = isEvModeEarly 
+            ? (hasTargetsDataEarly || hasEvTimeSeriesDataEarly) // EV mode: targets OR EV time series
+            : (hasPieDataEarly || hasTimeSeriesEarly || hasTargetsDataEarly || hasClimateTargetsData); // RE mode
+        
+        // Prepare modal content container for flex layout to avoid scrolling
+        modalContent.style.display = 'flex';
+        modalContent.style.flexDirection = 'column';
+        modalContent.style.overflow = 'hidden';
+
+        if (!hasAnyData) {
 			const noDataMessage = isEvModeEarly 
 				? `We don't have EV support data for ${countryName} yet. We're working to add it soon.`
 				: `We don't have dashboard data for ${countryName} yet. We're working to add it soon.`;
@@ -1894,9 +1971,9 @@ Promise.all([
                     <span style="font-size:13px; color:#374151;">Download Full Dataset (.xlsx)</span>
                 </button>
             </div>
-            <div id="dashboard-top" style="display:flex; gap:16px; width:100%; height:100%; flex-direction:row;">
-                <div id="dashboard-pie" style="flex:1; min-height:300px; background:#f8fafc; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);"></div>
-                <div id="dashboard-timeseries" style="flex:1; min-height:300px; background:#f8fafc; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);"></div>
+            <div id="dashboard-top" style="display:flex; gap:16px; width:100%; flex:1; min-height:0; flex-direction:row;">
+                <div id="dashboard-pie" style="flex:1; min-height:200px; background:#f8fafc; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);"></div>
+                <div id="dashboard-timeseries" style="flex:1; min-height:200px; background:#f8fafc; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);"></div>
             </div>
         `;
 
@@ -1926,12 +2003,24 @@ Promise.all([
                 const el = btnExport as HTMLButtonElement;
                 el.style.outline = 'none';
             });
-            btnExport.addEventListener('click', () => {
+            btnExport.addEventListener('click', async () => {
                 const wb = XLSX.utils.book_new();
+
+                // Add Info sheet first
+                try {
+                    const infoDataUrl = `${baseUrl}data/info_data.xlsx`;
+                    const infoBuffer = await fetch(infoDataUrl).then(r => r.arrayBuffer());
+                    const infoWb = XLSX.read(infoBuffer);
+                    if (infoWb.SheetNames.length > 0) {
+                        XLSX.utils.book_append_sheet(wb, infoWb.Sheets[infoWb.SheetNames[0]], infoWb.SheetNames[0]);
+                    }
+                } catch (e) {
+                    console.error("Failed to load info sheet", e);
+                }
 
                 // Policies (filtered by selected country using name -> ISO3 map)
                 const rowsPolicies = policyCsv.filter((row: any) => {
-                    const cName = normalizePolicyCountryName(row.country);
+                    const cName = normalizePolicyCountryName(row[countryColumnName]);
                     if (!cName) return false;
                     const code3 = countryNameMap[cName] || null;
                     return code3 === countryCode3;
@@ -1944,7 +2033,7 @@ Promise.all([
 
                 // Targets (filtered by ISO3 at first column or explicit Country_code)
                 const rowsTargets = targetsCsv.filter((row: any) => {
-                    const code = row.Country_code || row[Object.keys(row)[0]];
+                    const code = row[tCountryCodeCol] || row[Object.keys(row)[0]];
                     return code === countryCode3;
                 });
                 const headersTargets = (targetsCsv.columns && targetsCsv.columns.length > 0)
@@ -1955,7 +2044,7 @@ Promise.all([
 
                 // Climate Targets (filtered by ISO3 at first column or explicit Country_code)
                 const rowsClimate = climateTargetsCsv.filter((row: any) => {
-                    const code = row.Country_code || row[Object.keys(row)[0]];
+                    const code = row[ctCountryCodeCol] || row[Object.keys(row)[0]];
                     return code === countryCode3;
                 });
                 const headersClimate = (climateTargetsCsv.columns && climateTargetsCsv.columns.length > 0)
@@ -1965,10 +2054,8 @@ Promise.all([
                 XLSX.utils.book_append_sheet(wb, wsClimate, 'ClimateTargets');
 
                 // EV Support Policies (filtered by ISO3 at first column)
-                const evColsExport = evCsv.columns || [];
-                const evCountryColExport = evColsExport[0] || 'country_code';
                 const rowsEv = evCsv.filter((row: any) => {
-                    const code = String(row[evCountryColExport] || '').trim().toUpperCase();
+                    const code = String(row[evCountryCodeCol] || '').trim().toUpperCase();
                     return code === countryCode3;
                 });
                 const headersEv = (evCsv.columns && evCsv.columns.length > 0)
@@ -2005,8 +2092,20 @@ Promise.all([
                 const el = btnExportAll as HTMLButtonElement;
                 el.style.outline = 'none';
             });
-            (btnExportAll as HTMLButtonElement).addEventListener('click', () => {
+            (btnExportAll as HTMLButtonElement).addEventListener('click', async () => {
                 const wb = XLSX.utils.book_new();
+
+                // Add Info sheet first
+                try {
+                    const infoDataUrl = `${baseUrl}data/info_data.xlsx`;
+                    const infoBuffer = await fetch(infoDataUrl).then(r => r.arrayBuffer());
+                    const infoWb = XLSX.read(infoBuffer);
+                    if (infoWb.SheetNames.length > 0) {
+                        XLSX.utils.book_append_sheet(wb, infoWb.Sheets[infoWb.SheetNames[0]], infoWb.SheetNames[0]);
+                    }
+                } catch (e) {
+                    console.error("Failed to load info sheet", e);
+                }
 
                 const addSheet = (name: string, rows: any[]) => {
                     const headers = (rows && (rows as any).columns && (rows as any).columns.length > 0)
@@ -2021,7 +2120,7 @@ Promise.all([
                 addSheet('ClimateTargets', climateTargetsCsv as any);
                 addSheet('EV_Support', evCsv as any);
 
-                XLSX.writeFile(wb, `All_sheets.xlsx`);
+                XLSX.writeFile(wb, `Climate_Policy_Atlas_1.0.xlsx`);
             });
         }
         // Open the modal before measuring sizes to ensure containers have dimensions
@@ -2093,6 +2192,7 @@ Promise.all([
             } else {
                 if (leftContainer) {
                     leftContainer.style.display = 'flex';
+                    leftContainer.style.flexDirection = 'column';
                 }
                 if (tsContainerForLayout) {
                     tsContainerForLayout.style.flex = '1';
@@ -2120,13 +2220,14 @@ Promise.all([
                 if (climateTargetsList.length > 0) {
                     const targetsContainer = leftContainer as HTMLElement;
                     const rect = targetsContainer.getBoundingClientRect();
-                    const margin = { top: 40, right: 60, bottom: 60, left: 60 };
+                    const citationHeight = 60; // Reserve space for citation
+                    const margin = { top: 40, right: 60, bottom: 20, left: 60 };
                     const width = rect.width - margin.left - margin.right;
-                    const height = rect.height - margin.top - margin.bottom;
+                    const height = rect.height - margin.top - margin.bottom - citationHeight;
                     
                     const svg = d3.select(targetsContainer).append('svg')
                         .attr('width', rect.width)
-                        .attr('height', rect.height)
+                        .attr('height', rect.height - citationHeight)
                         .style('background', '#f8fafc')
                         .style('border-radius', '12px');
                     
@@ -2249,6 +2350,18 @@ Promise.all([
                         .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
                         .style('fill', '#475569')
                         .text('Emission Reduction Target (%)');
+
+                    // Add Citation
+                    d3.select(targetsContainer).append('div')
+                        .style('flex', '0 0 auto') // Don't grow or shrink
+                        .style('padding', '10px 20px')
+                        .style('font-size', '9px')
+                        .style('color', '#64748b')
+                        .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
+                        .style('line-height', '1.4')
+                        .style('max-width', '100%')
+                        .style('background', '#f8fafc') // Match container background
+                        .html(`<strong>Suggested Citation:</strong> ${CITATION_CLIMATE}`);
                     
                     // Color for climate targets (purple to match map)
                     const climateColor = '#7c3aed'; // Purple for climate targets
@@ -2412,13 +2525,14 @@ Promise.all([
             } else if (!isEvMode && leftContainer && countryTargets.length > 0) {
                 const targetsContainer = leftContainer as HTMLElement;
                 const rect = targetsContainer.getBoundingClientRect();
-                const margin = { top: 40, right: 60, bottom: 60, left: 60 };
+                const citationHeight = 60; // Reserve space for citation
+                const margin = { top: 40, right: 60, bottom: 20, left: 60 };
                 const width = rect.width - margin.left - margin.right;
-                const height = rect.height - margin.top - margin.bottom;
+                const height = rect.height - margin.top - margin.bottom - citationHeight;
                 
                 const svg = d3.select(targetsContainer).append('svg')
                     .attr('width', rect.width)
-                    .attr('height', rect.height)
+                    .attr('height', rect.height - citationHeight)
                     .style('background', '#f8fafc')
                     .style('border-radius', '12px');
                 
@@ -3014,6 +3128,18 @@ Promise.all([
                     .style('fill', '#94a3b8')
                     .text('Click to show/hide target types');
 
+                // Add Citation
+                d3.select(targetsContainer).append('div')
+                    .style('flex', '0 0 auto') // Don't grow or shrink
+                    .style('padding', '10px 20px')
+                    .style('font-size', '9px')
+                    .style('color', '#64748b')
+                    .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
+                    .style('line-height', '1.4')
+                    .style('max-width', '100%')
+                    .style('background', '#f8fafc') // Match container background
+                    .html(`<strong>Suggested Citation:</strong> ${CITATION_TARGETS}`);
+
                 // Removed per-chart overlay in favor of single dashboard overlay
             } else if (leftContainer && !isEvMode && !isClimateTargetsMode) {
                 // Only show "no RE targets" message for RE Support and Renewables Targets modes
@@ -3067,12 +3193,17 @@ Promise.all([
                 const years = allYears.filter(y => y >= startY && y <= endY);
 
                 const rect = tsContainer.getBoundingClientRect();
-                const margin = { top: 24, right: 60, bottom: 80, left: 120 };
+                const citationHeight = 60; // Reserve space for citation
+                // Responsive margins for smaller screens
+                const isSmallScreen = rect.width < 768;
+                const margin = isSmallScreen 
+                    ? { top: 30, right: 20, bottom: 20, left: 140 }
+                    : { top: 40, right: 20, bottom: 20, left: 140 };
                 const width = rect.width - margin.left - margin.right;
-                const height = rect.height - margin.top - margin.bottom;
+                const height = rect.height - margin.top - margin.bottom - citationHeight;
                 const svg = d3.select(tsContainer).append('svg')
                     .attr('width', rect.width)
-                    .attr('height', rect.height)
+                    .attr('height', rect.height - citationHeight)
                     .style('border-radius', '12px')
                     .style('filter', 'drop-shadow(0 2px 8px rgba(0,0,0,0.06))');
 
@@ -3195,7 +3326,12 @@ Promise.all([
                             item.style.borderRadius = '8px';
                             item.style.background = '#f9fafb';
                             item.style.border = '1px solid #e5e7eb';
-                            const f = (name: string) => r[name] ?? '';
+                            // Robust field accessor: try exact match, then case-insensitive match
+                            const f = (name: string) => {
+                                if (r[name] !== undefined) return r[name];
+                                const key = Object.keys(r).find(k => k.trim().toLowerCase() === name.trim().toLowerCase());
+                                return key ? r[key] : '';
+                            };
                             
                             if (isEv) {
                                 // EV Support mode: use level_1 and instrument_level1_unit
@@ -3352,12 +3488,12 @@ Promise.all([
                         // Filter from appropriate CSV based on mode
                         let rows: any[];
                         if (isEvMode) {
-                            // EV mode: filter from evCsv using ISO_code and measure columns
+                            // EV mode: filter from evCsv using dynamic columns
                             rows = evCsv.filter((row: any) => {
-                                const countryCodeRaw = row['ISO_code'];
-                                const m = row['measure'] || 'Unknown';
-                                const introducedYear = Number(row['start_year']); // Use start_year column
-                                const policyChangedDetail = String(row['policy_changed_detail'] || '').trim().toLowerCase();
+                                const countryCodeRaw = row[evCountryCodeCol];
+                                const m = row[evMeasureCol] || 'Unknown';
+                                const introducedYear = Number(row[evYearCol]); 
+                                const policyChangedDetail = String(row[evPolicyChangedDetailCol] || '').trim().toLowerCase();
                                 
                                 if (!countryCodeRaw) return false;
                                 const code = String(countryCodeRaw).trim().toUpperCase();
@@ -3371,15 +3507,15 @@ Promise.all([
                             // RE Support mode: filter from policyCsv
                             // Get all rows for this country+measure, then find the most recent one at or before clicked year
                             const allMatchingRows = policyCsv.filter((row: any) => {
-                                const cName = normalizePolicyCountryName(row.country);
-                                const m = row.measure || 'Unknown';
+                                const cName = normalizePolicyCountryName(row[countryColumnName]);
+                                const m = row[measureColumnName] || 'Unknown';
                                 const code3 = countryNameMap[cName || ''];
                                 return code3 === countryCode3 && m === measure;
                             });
                             // Find rows at or before the clicked year
                             // Show ALL rows that match the exact clicked year
                             rows = allMatchingRows.filter((row: any) => {
-                                const rowYear = Number(row.year);
+                                const rowYear = Number(row[yearColumnName]);
                                 return Number.isFinite(rowYear) && rowYear === year;
                             });
                         }
@@ -3440,6 +3576,18 @@ Promise.all([
                     .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
                     .style('fill', '#475569')
                     .text('Year');
+
+                // Add Citation
+                d3.select(tsContainer).append('div')
+                    .style('margin-top', '10px')
+                    .style('padding', '0 20px 20px 20px')
+                    .style('font-size', '9px')
+                    .style('color', '#64748b')
+                    .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')
+                    .style('line-height', '1.4')
+                    .style('max-width', '100%')
+                    .html(`<strong>Suggested Citation:</strong> ${isEvMode ? CITATION_EV : CITATION_POLICY}`);
+
             } else if (tsContainer) {
                 // Show message when no time series data is available
                 tsContainer.innerHTML = `

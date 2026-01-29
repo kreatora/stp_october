@@ -139,57 +139,93 @@
                     e.preventDefault();
                     
                     // Same data sources as world map
-                    const policyDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRSmQv60PxLi78KuDkiUcVVxcUuA1jhGnSxWsX2iuuJU6CK9-ffo37KYZ385DKbLU9Q7YK7-YHwguYt/pub?output=csv';
-                    const targetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT3-WPhaWoOuxNXsuYtvjWGbALa16b-5P8othvblAnDq2tZx463_OQSEheiZY0ZAA/pub?gid=2102422266&single=true&output=csv';
-                    const climateTargetsDataUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSCAQfaB6c1ibsvKmM7F5P6zgvq5tfdvMmnAOQaPdeto37x8VbwTofTjZa6ap6kg/pub?output=csv';
+                    const policyDataUrl = 'data/policy_data.xlsx';
+                    const targetsDataUrl = 'data/targets_data.csv';
+                    const climateTargetsDataUrl = 'data/climate_targets_data.csv';
+                    const evDataUrl = 'data/ev_data.csv';
+                    const infoDataUrl = 'data/info_data.xlsx';
                     
                     try {
                         downloadLink.textContent = 'Downloading...';
                         downloadLink.style.pointerEvents = 'none';
                         
-                        const [policyCsv, targetsCsv, climateTargetsCsv] = await Promise.all([
-                            fetch(policyDataUrl).then(r => r.text()),
+                        const [policyBuffer, targetsCsv, climateTargetsCsv, evCsv, infoBuffer] = await Promise.all([
+                            fetch(policyDataUrl).then(r => r.arrayBuffer()),
                             fetch(targetsDataUrl).then(r => r.text()),
-                            fetch(climateTargetsDataUrl).then(r => r.text())
+                            fetch(climateTargetsDataUrl).then(r => r.text()),
+                            fetch(evDataUrl).then(r => r.text()),
+                            fetch(infoDataUrl).then(r => r.arrayBuffer())
                         ]);
                         
-                        // Parse CSV properly (handle quoted fields with commas)
+                        // Robust CSV parser that handles quoted fields and newlines correctly
                         function parseCSV(text) {
                             const rows = [];
-                            const lines = text.split('\n');
-                            for (const line of lines) {
-                                if (!line.trim()) continue;
-                                const row = [];
-                                let cell = '';
-                                let inQuotes = false;
-                                for (let i = 0; i < line.length; i++) {
-                                    const char = line[i];
-                                    if (char === '"') {
-                                        inQuotes = !inQuotes;
-                                    } else if (char === ',' && !inQuotes) {
-                                        row.push(cell);
-                                        cell = '';
+                            let currentRow = [];
+                            let currentCell = '';
+                            let inQuotes = false;
+                            
+                            for (let i = 0; i < text.length; i++) {
+                                const char = text[i];
+                                const nextChar = text[i + 1];
+                                
+                                if (char === '"') {
+                                    if (inQuotes && nextChar === '"') {
+                                        // Escaped quote
+                                        currentCell += '"';
+                                        i++; // Skip next quote
                                     } else {
-                                        cell += char;
+                                        inQuotes = !inQuotes;
                                     }
+                                } else if (char === ',' && !inQuotes) {
+                                    currentRow.push(currentCell);
+                                    currentCell = '';
+                                } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                                    // Handle CRLF or LF
+                                    if (char === '\r' && nextChar === '\n') {
+                                        i++;
+                                    }
+                                    if (currentRow.length > 0 || currentCell.length > 0) {
+                                        currentRow.push(currentCell);
+                                        rows.push(currentRow);
+                                        currentRow = [];
+                                        currentCell = '';
+                                    }
+                                } else {
+                                    currentCell += char;
                                 }
-                                row.push(cell);
-                                rows.push(row);
+                            }
+                            // Push last row if exists
+                            if (currentRow.length > 0 || currentCell.length > 0) {
+                                currentRow.push(currentCell);
+                                rows.push(currentRow);
                             }
                             return rows;
                         }
-                        
+
                         const wb = XLSX.utils.book_new();
+
+                        // Add Info sheet first
+                        try {
+                            const infoWb = XLSX.read(infoBuffer);
+                            if (infoWb.SheetNames.length > 0) {
+                                XLSX.utils.book_append_sheet(wb, infoWb.Sheets[infoWb.SheetNames[0]], infoWb.SheetNames[0]);
+                            }
+                        } catch (e) {
+                            console.error("Failed to parse info sheet", e);
+                        }
                         
-                        const policySheet = XLSX.utils.aoa_to_sheet(parseCSV(policyCsv));
+                        const policyWb = XLSX.read(policyBuffer);
+                        const policySheet = policyWb.Sheets[policyWb.SheetNames[0]];
                         const targetsSheet = XLSX.utils.aoa_to_sheet(parseCSV(targetsCsv));
                         const climateSheet = XLSX.utils.aoa_to_sheet(parseCSV(climateTargetsCsv));
+                        const evSheet = XLSX.utils.aoa_to_sheet(parseCSV(evCsv));
                         
                         XLSX.utils.book_append_sheet(wb, policySheet, 'Policies');
                         XLSX.utils.book_append_sheet(wb, targetsSheet, 'Targets');
                         XLSX.utils.book_append_sheet(wb, climateSheet, 'ClimateTargets');
+                        XLSX.utils.book_append_sheet(wb, evSheet, 'EV_Support');
                         
-                        XLSX.writeFile(wb, 'All_sheets.xlsx');
+                        XLSX.writeFile(wb, 'Climate_Policy_Atlas_1.0.xlsx');
                         
                         downloadLink.textContent = 'here';
                         downloadLink.style.pointerEvents = 'auto';
