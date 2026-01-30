@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>World Map - Climate Policy Atlas</title>
-    <link rel="stylesheet" href="src/input.css?v=20260116">
     <!-- Typography: Libre Baskerville (scholarly headings) + DM Sans (modern UI) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <!-- Shared styles (single source of truth) -->
-    <link rel="stylesheet" href="src/shared.css?v=20260116">
     <style>
         /* Page-specific styles for World Map */
         #world-map {
@@ -53,7 +51,8 @@
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 4px 20px rgba(0,0,0,0.18), inset 0 2px 6px rgba(0,0,0,0.08);
-            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+                    backdrop-filter: blur(10px);
             opacity: 0.88; /* slightly transparent when not hovered */
         }
         
@@ -96,7 +95,9 @@
             letter-spacing: 0.2px;
             transition: all 0.3s ease;
             cursor: pointer;
-            user-select: none;
+            -webkit-user-select: none;
+               -moz-user-select: none;
+                    user-select: none;
             z-index: 10;
             padding: 4px 6px;
             border-radius: 12px;
@@ -219,7 +220,8 @@
             border: 2px solid rgba(148, 163, 184, 0.95);
             border-radius: 16px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2), 0 6px 20px rgba(0,0,0,0.15);
-            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+                    backdrop-filter: blur(14px);
             opacity: 0;
             visibility: hidden;
             transform: translateY(-10px) scale(0.95);
@@ -366,7 +368,8 @@
             border: 2px solid rgba(148, 163, 184, 0.95);
             border-radius: 16px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2), 0 6px 20px rgba(0,0,0,0.15);
-            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+                    backdrop-filter: blur(14px);
             opacity: 0;
             visibility: hidden;
             transform: translateY(-10px) scale(0.95);
@@ -583,6 +586,10 @@
             display: block;
         }
     </style>
+  <script type="module" crossorigin src="./assets/worldMap.CxnBygEl.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/input.BOyCOgG3.js">
+  <link rel="stylesheet" crossorigin href="./assets/main.Brq2wv8L.css">
+  <link rel="stylesheet" crossorigin href="./assets/shared.WBe8uAPb.css">
 </head>
 <body class="bg-stone-800 text-neutral-700">
     <header class="text-white">
@@ -739,6 +746,5 @@
         </div>
     </footer>
 
-    <script type="module" src="/src/world-map.ts?v=20260116"></script>
 </body>
 </html>
