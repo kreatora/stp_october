@@ -3,14 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Us - Climate Policy Atlas</title>
-    <link rel="stylesheet" href="src/input.css?v=20260116">
+    <title>Climate Policy Atlas</title>
+    <!-- Tailwind CSS -->
     <!-- Typography: Libre Baskerville (scholarly headings) + DM Sans (modern UI) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <!-- Shared styles (single source of truth) -->
-    <link rel="stylesheet" href="src/shared.css?v=20260118">
+  <script type="module" crossorigin src="./assets/main.DPYXBB00.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/input.BOyCOgG3.js">
+  <link rel="modulepreload" crossorigin href="./assets/client.C3rq0lfV.js">
+  <link rel="stylesheet" crossorigin href="./assets/main.Brq2wv8L.css">
+  <link rel="stylesheet" crossorigin href="./assets/shared.WBe8uAPb.css">
 </head>
 <body class="bg-stone-800 text-neutral-700">
     <header class="text-white">
@@ -25,43 +29,35 @@
         <div class="nav-custom py-4">
             <nav class="container mx-auto text-center">
                 <ul class="flex justify-center space-x-4 md:space-x-6">
-                    <li><a href="index.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">Home</a></li>
+                    <li><a href="index.html" class="text-custom hover:text-white transition-colors duration-200 active-nav nav-item-hover">Home</a></li>
                     <li><a href="ontology.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">Ontology</a></li>
                     <li><a href="world-map.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">World Map</a></li>
                     <li><a href="data.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">Data</a></li>
-                    <li><a href="about-us.html" class="text-custom hover:text-white transition-colors duration-200 active-nav nav-item-hover">About Us</a></li>
+                    <li><a href="about-us.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">About Us</a></li>
                 </ul>
             </nav>
         </div>
     </header>
 
-    <main class="p-4 md:p-8 bg-custom min-h-screen">
-        <section class="mb-12 md:mb-16 max-w-[1792px] mx-auto py-6">
-            <h2 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] mb-6 md:mb-8 text-center title-underline mx-auto">About Us</h2>
-            <div class="max-w-5xl mx-auto">
-                <p class="text-lg mb-4 text-neutral-700">The Climate and Energy Policy Ontology and the Climate Policy Atlas data has been created by the Sustainability Transition Policy group at the Friedrich Alexander University in Nuremberg, Germany with feedback and collaboration from experts in the field. For more information about the group and our research, please visit the <a href="https://www.transitionpolicy.rw.fau.de/" target="_blank" rel="noopener noreferrer" class="content-link">Sustainability Transition Policy group page</a>.</p>
+    <main class="p-4 md:p-8 bg-custom min-h-screen relative">
+        <section class="max-w-5xl mx-auto py-6">
+            <h2 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline text-center mb-6 md:mb-8">Welcome!</h2>
 
-                <p class="text-lg text-neutral-700 mb-4"><span class="font-medium text-[rgb(42,58,42)]">Research Team:</span> Weko, Silvia • Malhotra, Puru • Chaianong, Aksornchan • Milioritsas, Ioannis • Bold, Franziska • Lilliestam, Johan</p>
-
-                <p class="text-lg text-neutral-700 mb-4"><span class="font-medium text-[rgb(42,58,42)]">Contributors to dataset and/or ontology development:</span> Günkördü, Dogukan • Lebedeva, Daria • Weiß, Johannes • Müller, Yaelle • Wein, Amanda • Stappel, Mirjam • Climate Policy Database Team • Climate Policy Radar Team • Open Energy Ontology Team</p>
-
-                <p class="text-lg text-neutral-700 mb-4"><span class="font-medium text-[rgb(42,58,42)]">Website design:</span> Günkördü, Dogukan</p>
-
-                <div class="mt-8 mb-8">
-                    <h3 class="text-2xl font-semibold text-[rgb(42,58,42)] mb-4">Funding Information</h3>
-                    <p class="text-lg text-neutral-700 mb-4">
-                        The STP Team received funding for this research from the German Research Foundation (DFG) – 501865131 within the German National Research Data Infrastructure (NFDI, <a href="https://www.nfdi.de/" target="_blank" rel="noopener noreferrer" class="content-link">www.nfdi.de</a>), provided by the German Federal Government, the German State Governments, and the Joint Science Conference (GWK). In addition, Silvia Weko and Aksornchan Chaianong received funding from the Office for Equal Opportunities for Women in Science and the Arts at the School of Business, Economics, and Law at FAU Erlangen-Nürnberg.
-                    </p>
-                    <p class="text-lg text-neutral-700 mb-4">
-                        The National Research Infrastructure for Energy project (<a href="https://nfdi4energy.uol.de/" target="_blank" rel="noopener noreferrer" class="content-link">NFDI4Energy</a>) is a consortium under the umbrella of the National Research Data Infrastructure (NFDI) dedicated to building an Open Ecosystem for FAIR (Findable, Accessible, Interoperable, Reusable) Research Artefacts in Interdisciplinary Energy Systems Research. Within NFDI4Energy, STP generates and prepares energy data that can be used by researchers in Germany and elsewhere. This includes data on technology support policies and climate and energy targets, but also on regulations for where which technologies (e.g. wind farms, power lines) can and cannot be built. Long data series for such data are not presently available, and the individual datasets (e.g. for a specific country or set of countries) are generally not machine-readable or in a format which can be compared across countries.
-                    </p>
-                </div>
-                
-                <div class="mb-8 flex justify-center">
-                    <img src="images/nfdi4energy_logo_cut.png" alt="NFDI4Energy Logo" style="width: 150px; height: auto;">
-                </div>
+            <div class="bg-custom p-8 md:p-10 rounded-lg shadow-xl mb-6 mx-auto max-w-5xl">
+                <p class="text-lg mb-6 text-neutral-700 text-left">Welcome to the Climate Policy Atlas: a project presenting high-resolution, curated and open data on energy and climate policies and targets. The Climate Policy Atlas is based on the Climate and Energy Policy Ontology, a structured, semantic framework for organising climate and energy policy instrument data in a consistent and comparable way. The project aims to enable empirical policy analysis and make existing policy data more accessible and interoperable. The Climate Policy Atlas is funded by the German Research Foundation DFG project NFDI4Energy.</p>
             </div>
+
+            <div class="mb-8 flex justify-center items-center gap-6">
+                <img src="images/nfdi4energy_logo_cut.png" alt="NFDI4Energy Logo" style="width: 150px; height: auto;">
+                <img src="images/CLIMATE POLICY ATLAS LOGO-Photoroom.png" alt="Climate Policy Atlas Logo" style="width: 150px; height: auto;">
+            </div>
+
+            <!-- React mounting point for index page -->
+            <div id="root"></div>
+
         </section>
+
+        <!-- Decorative images removed per request -->
     </main>
 
     <footer style="background-color: rgb(42,58,42); color: #f5f5f0; padding: 1.5rem 2rem;">
@@ -93,8 +89,6 @@
         </div>
     </footer>
 
-    <div id="root"></div>
-    <script type="module" src="/src/about-us.tsx?v=20260116"></script>
 
 </body>
 </html>
