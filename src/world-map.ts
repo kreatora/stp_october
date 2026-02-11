@@ -4,6 +4,23 @@ const XLSX = (XLSX_ as any).default || XLSX_;
 import { geoMercator, geoPath } from 'd3-geo';
 import polylabel from 'polylabel';
 
+// Helper: Add Climate Policy Atlas logo watermark to an SVG chart (top-right, reduced opacity)
+function addLogoWatermark(svg: d3.Selection<SVGSVGElement, unknown, HTMLElement, any>, svgWidth: number) {
+    const logoSize = 70;
+    const padding = 10;
+    // Append logo after a short delay so it renders on top of all chart elements
+    setTimeout(() => {
+        svg.append('image')
+            .attr('href', `${(import.meta as any).env.BASE_URL || '/'}images/CLIMATE POLICY ATLAS LOGO-Photoroom.png`)
+            .attr('x', svgWidth - logoSize - padding)
+            .attr('y', padding)
+            .attr('width', logoSize)
+            .attr('height', logoSize)
+            .style('opacity', 0.25)
+            .style('pointer-events', 'none');
+    }, 50);
+}
+
 // Modal functionality for full-screen charts
 function openModal() {
     const modal = document.getElementById('chart-modal');
@@ -103,197 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Function to create full-screen pie chart
-function createFullScreenPieChart(pieData: any[], countryName: string, globalColorScale: any) {
-    const modalContent = document.getElementById('modal-content');
-    const modalTitle = document.getElementById('modal-title');
-    if (!modalContent) return;
-
-    // Set modal title
-    if (modalTitle) {
-        modalTitle.textContent = `Policy Distribution - ${countryName}`;
-    }
-
-    modalContent.innerHTML = `
-        <div id="fullscreen-pie-chart" class="w-full h-full"></div>
-    `;
-
-    // Add a small delay to ensure the modal is fully rendered
-    setTimeout(() => {
-        const container = document.getElementById('fullscreen-pie-chart');
-        if (!container) return;
-
-        // Allow positioned overlays inside the container
-        (container as HTMLElement).style.position = 'relative';
-        const containerRect = container.getBoundingClientRect();
-        // Fully responsive sizing based on container dimensions
-        const isSmallScreen = containerRect.width < 768;
-        
-        // Calculate available space using percentages
-        const availableWidth = containerRect.width;
-        const availableHeight = containerRect.height;
-        
-        // Reserve space for legend using percentages of container
-        const legendHeightPercent = isSmallScreen ? 0.25 : 0; // 25% of height for horizontal legend
-        const legendWidthPercent = isSmallScreen ? 0 : 0.28; // 28% of width for vertical legend
-        
-        const legendHeight = availableHeight * legendHeightPercent;
-        const legendWidth = availableWidth * legendWidthPercent;
-        
-        const chartAreaWidth = availableWidth - legendWidth;
-        const chartAreaHeight = availableHeight - legendHeight;
-        
-        // Calculate chart size as percentage of available area
-        const chartSizePercent = isSmallScreen ? 0.85 : 0.75; // Use 85% on small screens, 75% on larger
-        const chartSize = Math.min(chartAreaWidth * chartSizePercent, chartAreaHeight * chartSizePercent);
-        const radius = chartSize / 2 - (chartSize * 0.1); // 10% padding relative to chart size
-
-        // Create main container with proper constraints
-        const mainContainer = d3.select(container).append('div')
-            .style('display', 'flex')
-            .style('flex-direction', isSmallScreen ? 'column' : 'row')
-            .style('align-items', 'center')
-            .style('justify-content', 'center')
-            .style('width', '100%')
-            .style('height', '100%')
-            .style('gap', isSmallScreen ? '20px' : '30px')
-            .style('padding', '20px')
-            .style('box-sizing', 'border-box')
-            .style('overflow', 'hidden');
-
-        // Chart container with fixed size
-        const chartContainer = mainContainer.append('div')
-            .style('display', 'flex')
-            .style('justify-content', 'center')
-            .style('align-items', 'center')
-            .style('flex-shrink', '0')
-            .style('width', `${chartSize}px`)
-            .style('height', `${chartSize}px`);
-
-        const svg = chartContainer
-            .append('svg')
-            .attr('width', chartSize)
-            .attr('height', chartSize);
-
-        const g = svg.append('g')
-            .attr('transform', `translate(${chartSize / 2}, ${chartSize / 2})`);
-
-        const pie = d3.pie<any>()
-            .value(d => d.count)
-            .sort(null);
-
-        const arc = d3.arc<any>()
-            .innerRadius(0)
-            .outerRadius(radius);
-
-        const totalCount = d3.sum(pieData, d => d.count);
-
-        // Create pie slices
-        const slices = g.selectAll('.slice')
-            .data(pie(pieData))
-            .enter()
-            .append('g')
-            .attr('class', 'slice');
-
-        slices.append('path')
-            .attr('d', arc)
-            .attr('fill', d => globalColorScale(d.data.type) as string)
-            .attr('stroke', 'white')
-            .attr('stroke-width', 3)
-            .style('cursor', 'pointer')
-            .on('mouseover', function() {
-                d3.select(this).style('filter', 'brightness(1.08)');
-            })
-            .on('mouseout', function() {
-                d3.select(this).style('filter', null);
-            });
-
-        // Add labels
-        const labelFontSize = isSmallScreen ? '12px' : '16px';
-        slices.append('text')
-            .attr('transform', d => `translate(${arc.centroid(d)})`)
-            .attr('text-anchor', 'middle')
-            .attr('font-size', labelFontSize)
-            .attr('fill', 'white')
-            .attr('font-weight', 'bold')
-            .text(d => {
-                const percentage = Math.round((d.data.count / totalCount) * 100);
-                return `${percentage}%`;
-            });
-
-        // Create fully responsive legend container
-        const legendContainer = mainContainer.append('div')
-            .style('display', 'flex')
-            .style('flex-direction', isSmallScreen ? 'row' : 'column')
-            .style('flex-wrap', isSmallScreen ? 'wrap' : 'nowrap')
-            .style('gap', isSmallScreen ? '1vw' : '1.5vh') // Responsive gap based on viewport
-            .style('align-items', isSmallScreen ? 'center' : 'flex-start')
-            .style('justify-content', isSmallScreen ? 'center' : 'flex-start')
-            .style('flex-shrink', '0')
-            .style('width', isSmallScreen ? '100%' : `${legendWidthPercent * 100}%`) // Use calculated percentage
-            .style('height', isSmallScreen ? `${legendHeightPercent * 100}%` : 'auto') // Use calculated percentage
-            .style('max-width', '100%')
-            .style('max-height', '100%')
-            .style('overflow', 'auto')
-            .style('padding', isSmallScreen ? '1vh' : '1vw') // Responsive padding
-            .style('box-sizing', 'border-box');
-
-        pieData.forEach((d) => {
-            const legendItemGap = isSmallScreen ? '0.5vw' : '0.8vh'; // Responsive gap
-            const legendItem = legendContainer.append('div')
-                .style('display', 'flex')
-                .style('align-items', 'center')
-                .style('gap', legendItemGap);
-
-            const legendBoxSize = isSmallScreen ? '1.8vw' : '2vh'; // Responsive box size
-            legendItem.append('div')
-                .style('width', legendBoxSize)
-                .style('height', legendBoxSize)
-                .style('min-width', '12px') // Minimum size for very small screens
-                .style('min-height', '12px')
-                .style('max-width', '24px') // Maximum size for very large screens
-                .style('max-height', '24px')
-                .style('background-color', globalColorScale(d.type) as string)
-                .style('border-radius', '3px')
-                .style('flex-shrink', '0');
-
-            const legendTextSize = isSmallScreen ? 'clamp(10px, 1.4vw, 16px)' : 'clamp(12px, 1.6vh, 18px)'; // Responsive text with limits
-            legendItem.append('span')
-                .style('font-size', legendTextSize)
-                .style('font-weight', 'bold')
-                .style('white-space', 'nowrap')
-                .style('overflow', 'hidden')
-                .style('text-overflow', 'ellipsis')
-                .text(`${d.type}: ${d.count}`);
-        });
-
-        // Interaction hint overlay for discoverability
-        const hint = d3.select(container)
-            .append('div')
-            .attr('class', 'chart-interaction-hint')
-            .style('position', 'absolute')
-            .style('top', '12px')
-            .style('left', '12px')
-            .style('z-index', '50')
-            .style('padding', '8px 12px')
-            .style('border-radius', '8px')
-            .style('background', 'rgba(31,41,55,0.9)')
-            .style('color', '#fff')
-            .style('font-size', '12px')
-            .style('box-shadow', '0 4px 10px rgba(0,0,0,0.15)')
-            .style('transition', 'opacity 300ms ease')
-            .style('opacity', '0.95')
-            .text('Tip: Hover over segments or click for details.');
-
-        const hideHint = () => {
-            hint.style('opacity', '0');
-            setTimeout(() => hint.remove(), 350);
-        };
-        setTimeout(hideHint, 4500);
-        (container as HTMLElement).addEventListener('mouseenter', hideHint, { once: true });
-    }, 100); // 100ms delay to ensure modal is rendered
-}
-
 // Function to create full-screen time series chart (stacked bar chart)
 function createFullScreenTimeSeriesChart(timeSeriesChartData: any[], countryName: string, globalColorScale: any) {
     const modalContent = document.getElementById('modal-content');
@@ -359,6 +185,7 @@ function createFullScreenTimeSeriesChart(timeSeriesChartData: any[], countryName
             .append('svg')
             .attr('width', containerRect.width)
             .attr('height', containerRect.height - svgHeightOffset);
+        addLogoWatermark(svg as any, containerRect.width);
 
         const g = svg.append('g')
             .attr('transform', `translate(${margin.left}, ${margin.top})`);
@@ -919,8 +746,10 @@ Promise.all([
             try {
                 console.log("Parsing EV data with XLSX...");
                 const wb = XLSX.read(ab, { type: 'array' });
-                const firstSheetName = wb.SheetNames[0];
-                const ws = wb.Sheets[firstSheetName];
+                // Use the second sheet (data sheet), skip the first "About" sheet
+                const dataSheetName = wb.SheetNames.length > 1 ? wb.SheetNames[1] : wb.SheetNames[0];
+                console.log("Using EV sheet:", dataSheetName);
+                const ws = wb.Sheets[dataSheetName];
                 const csvText = XLSX.utils.sheet_to_csv(ws);
                 console.log("Converted EV sheet to CSV text, length:", csvText.length);
                 return d3.csvParse(csvText);
@@ -928,6 +757,10 @@ Promise.all([
                 console.error("Error parsing EV XLSX:", e);
                 return [];
             }
+        })
+        .catch(e => {
+            console.error("Error fetching EV data:", e);
+            return [];
         })
 ]).then(([geoData, policyCsv, targetsCsv, climateTargetsCsv, evCsv]: [any, any, any, any, any]) => {
     console.log('Data loaded successfully:');
@@ -1094,28 +927,6 @@ Promise.all([
         return acc;
     }, {});
 
-    // Process policy types (Technology_type column) per country for pie charts
-    const policyTypeData = policyCsv.reduce((acc: { [key: string]: { [key: string]: number } }, row: any) => {
-        // Only include policies with Status === 'introduced'
-        if (!isIntroduced(row)) return acc;
-        const countryName = normalizePolicyCountryName(row[countryColumnName]);
-        const technologyType = row[techTypeColumnName] || 'Unknown';
-        
-        if (countryName) {
-            const countryCode3 = countryNameMap[countryName];
-            if (countryCode3) {
-                if (!acc[countryCode3]) {
-                    acc[countryCode3] = {};
-                }
-                if (!acc[countryCode3][technologyType]) {
-                    acc[countryCode3][technologyType] = 0;
-                }
-                acc[countryCode3][technologyType]++;
-            }
-        }
-        return acc;
-    }, {});
-
     // Process time series data: model yearly active policy types using events
     // Build events per country+measure, then expand to yearly active states
     const activationKeywords = ['introduc', 'reintr', 'resume', 'reactiv', 'adopt', 'pass', 'enact', 'implement', 'launch', 'start'];
@@ -1215,7 +1026,7 @@ Promise.all([
     console.log('Processed EV data:', Object.keys(evData).length, 'countries');
     console.log('Sample EV data:', Object.entries(evData).slice(0, 10));
 
-    // Process EV policy types (measure column - column F) per country for pie charts
+    // Process EV policy types (measure column) per country
     // Using actual column names from the EV CSV
     
     console.log('EV data - using columns for dashboard:', { evMeasureCol, evLevel1Col, evUnit1Col, evYearCol });
@@ -1223,7 +1034,7 @@ Promise.all([
     // Check what columns actually exist in the EV CSV
     console.log('EV CSV all columns:', evCsv.columns);
     
-    // Process EV policy types per country (similar to policyTypeData)
+    // Process EV policy types per country
     const evPolicyTypeData: { [country: string]: { [policyType: string]: number } } = {};
     evCsv.forEach((row: any) => {
         const countryCodeRaw = row[evCountryCodeCol];
@@ -1276,7 +1087,7 @@ Promise.all([
         
         const countryCode = String(countryCodeRaw).trim().toUpperCase();
         
-        // Only count rows where policy_changed_detail is "introduced" (same as evPolicyTypeData)
+        // Only count rows where policy_changed_detail is "introduced"
         if (policyChangedValue !== 'introduced') return;
         
         // Record the year for this country+measure (even if year is NaN, we'll handle it)
@@ -1515,7 +1326,6 @@ Promise.all([
         geoData,
         policies: {
             data: policyData,
-            typeData: policyTypeData,
             timeSeriesData: timeSeriesData,
             colorScale: null, // Will be set below
             globalColorScale: globalColorScale
@@ -1924,8 +1734,6 @@ Promise.all([
 		}
 		
 		// Check for RE policy time series data
-		const countryPolicyTypesEarly = policyTypeData[countryCode3] || {};
-		const hasPieDataEarly = Object.keys(countryPolicyTypesEarly).length > 0;
 		const countryTimeEarly = timeSeriesData[countryCode3];
 		let hasTimeSeriesEarly = false;
 		if (countryTimeEarly && Object.keys(countryTimeEarly).length > 0) {
@@ -1946,7 +1754,7 @@ Promise.all([
 		// Determine if we have any data to show based on mode
         const hasAnyData = isEvModeEarly 
             ? (hasTargetsDataEarly || hasEvTimeSeriesDataEarly) // EV mode: targets OR EV time series
-            : (hasPieDataEarly || hasTimeSeriesEarly || hasTargetsDataEarly || hasClimateTargetsData); // RE mode
+            : (hasTimeSeriesEarly || hasTargetsDataEarly || hasClimateTargetsData); // RE mode
         
         // Prepare modal content container for flex layout to avoid scrolling
         modalContent.style.display = 'flex';
@@ -2083,7 +1891,7 @@ Promise.all([
                 XLSX.utils.book_append_sheet(wb, wsEv, 'EV_Support');
 
                 const safeName = countryName.replace(/[^\w\-]+/g, '_');
-                XLSX.writeFile(wb, `${safeName}_data.xlsx`);
+                XLSX.writeFile(wb, `${safeName}_data.xlsx`, { compression: true });
             });
         }
 
@@ -2138,7 +1946,7 @@ Promise.all([
                 addSheet('ClimateTargets', climateTargetsCsv as any);
                 addSheet('EV_Support', evCsv as any);
 
-                XLSX.writeFile(wb, `Climate_Policy_Atlas_1.0.xlsx`);
+                XLSX.writeFile(wb, `Climate_Policy_Atlas_1.0.xlsx`, { compression: true });
             });
         }
         // Open the modal before measuring sizes to ensure containers have dimensions
@@ -2200,19 +2008,35 @@ Promise.all([
             // EV mode: Don't show the left chart at all (only EV timeline on right)
             // Also make the right container take full width
             const tsContainerForLayout = document.getElementById('dashboard-timeseries');
+            const isTargetsMode = currentMapType === 'targets';
             if (isEvMode) {
+                // EV mode: hide left chart, expand right (policy timeline) to full width
                 if (leftContainer) {
                     leftContainer.style.display = 'none';
                 }
                 if (tsContainerForLayout) {
+                    tsContainerForLayout.style.display = '';
                     tsContainerForLayout.style.flex = '1 1 100%';
                 }
-            } else {
+            } else if (isTargetsMode || isClimateTargetsMode) {
+                // Targets modes: hide policy timeline, expand left (targets chart) to full width
                 if (leftContainer) {
                     leftContainer.style.display = 'flex';
                     leftContainer.style.flexDirection = 'column';
+                    leftContainer.style.flex = '1 1 100%';
                 }
                 if (tsContainerForLayout) {
+                    tsContainerForLayout.style.display = 'none';
+                }
+            } else {
+                // Policies mode: show both side by side
+                if (leftContainer) {
+                    leftContainer.style.display = 'flex';
+                    leftContainer.style.flexDirection = 'column';
+                    leftContainer.style.flex = '1';
+                }
+                if (tsContainerForLayout) {
+                    tsContainerForLayout.style.display = '';
                     tsContainerForLayout.style.flex = '1';
                 }
             }
@@ -2248,6 +2072,7 @@ Promise.all([
                         .attr('height', rect.height - citationHeight)
                         .style('background', '#f8fafc')
                         .style('border-radius', '12px');
+                    addLogoWatermark(svg as any, rect.width);
                     
                     const g = svg.append('g')
                         .attr('transform', `translate(${margin.left}, ${margin.top})`);
@@ -2553,6 +2378,7 @@ Promise.all([
                     .attr('height', rect.height - citationHeight)
                     .style('background', '#f8fafc')
                     .style('border-radius', '12px');
+                addLogoWatermark(svg as any, rect.width);
                 
                 const g = svg.append('g')
                     .attr('transform', `translate(${margin.left}, ${margin.top})`);
@@ -3224,9 +3050,10 @@ Promise.all([
                     .attr('height', rect.height - citationHeight)
                     .style('border-radius', '12px')
                     .style('filter', 'drop-shadow(0 2px 8px rgba(0,0,0,0.06))');
+                addLogoWatermark(svg as any, rect.width);
 
                 const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
-                // Chart title for context (match pie chart styling)
+                // Chart title
                 svg.append('text')
                     .attr('x', margin.left + width / 2)
                     .attr('y', Math.max(16, margin.top - 6))
@@ -3725,6 +3552,7 @@ Promise.all([
                 createFullScreenTimeSeriesChart(timeSeriesChartData, countryName, globalColorScale);
                 openModal();
             });
+        addLogoWatermark(svg as any, chartWidth + margin.left + margin.right);
 
         const g = svg.append('g')
             .attr('transform', `translate(${margin.left},${margin.top})`);

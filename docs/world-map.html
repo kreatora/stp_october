@@ -465,26 +465,14 @@
             overflow-y: auto;
         }
         /* Hover effects for clickable chart elements */
-        #pie-chart-container svg:hover,
         #time-series-chart svg:hover {
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             transform: translateY(-2px);
         }
         
-        #pie-chart-container svg,
         #time-series-chart svg {
             transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
             border-radius: 8px;
-        }
-        
-        /* Hover effect for pie chart slices */
-        #pie-chart-container .slice:hover path {
-            filter: brightness(1.1);
-            stroke-width: 3px;
-        }
-        
-        #pie-chart-container .slice path {
-            transition: filter 0.2s ease-in-out, stroke-width 0.2s ease-in-out;
         }
         #policy-panel.visible {
             transform: translateX(0);
@@ -586,9 +574,9 @@
             display: block;
         }
     </style>
-  <script type="module" crossorigin src="./assets/worldMap.BJ2hFxzD.js"></script>
-  <link rel="modulepreload" crossorigin href="./assets/input.BOyCOgG3.js">
-  <link rel="stylesheet" crossorigin href="./assets/main.Brq2wv8L.css">
+  <script type="module" crossorigin src="./assets/worldMap.8Svt3Xmk.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/input.DqLi17n7.js">
+  <link rel="stylesheet" crossorigin href="./assets/main.CFwm-vbR.css">
   <link rel="stylesheet" crossorigin href="./assets/shared.WBe8uAPb.css">
 </head>
 <body class="bg-stone-800 text-neutral-700">
@@ -693,7 +681,7 @@
                 <button id="close-panel" style="position: absolute; top: 10px; right: 20px; background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
                 <h3 id="policy-country" class="text-xl font-bold mb-4"></h3>
                 <div id="policy-list" class="flex flex-col gap-4">
-                    <!-- Pie chart container will be dynamically added here -->
+                    <!-- Policy data will be dynamically added here -->
                 </div>
                 <div id="time-series-container" class="mt-6">
                     <h4 class="text-lg font-semibold mb-1 text-gray-700">Policy Evolution Over Time</h4>

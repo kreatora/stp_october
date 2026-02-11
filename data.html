@@ -52,31 +52,31 @@
                     <div class="grid gap-4 md:gap-6">
                         <div class="bg-[#f5f1e8] p-4 rounded-lg shadow-md border border-gray-200">
                             <h4 class="text-lg font-medium text-[rgb(42,58,42)] mb-2">Data on climate targets</h4>
-                            <a href="https://zenodo.org/records/15476049" 
+                            <a href="https://zenodo.org/records/18482359" 
                                target="_blank" 
                                rel="noopener noreferrer"
                                class="content-link">
-                                https://zenodo.org/records/15476049
+                                https://zenodo.org/records/18482359
                             </a>
                         </div>
                         
                         <div class="bg-[#f5f1e8] p-4 rounded-lg shadow-md border border-gray-200">
                             <h4 class="text-lg font-medium text-[rgb(42,58,42)] mb-2">Data on policy support for electric vehicles</h4>
-                            <a href="https://zenodo.org/records/15476330" 
+                            <a href="https://zenodo.org/records/18328109" 
                                target="_blank" 
                                rel="noopener noreferrer"
                                class="content-link">
-                                https://zenodo.org/records/15476330
+                                https://zenodo.org/records/18328109
                             </a>
                         </div>
                         
                         <div class="bg-[#f5f1e8] p-4 rounded-lg shadow-md border border-gray-200">
-                            <h4 class="text-lg font-medium text-[rgb(42,58,42)] mb-2">Data on renewable electricity targets</h4>
-                            <a href="https://zenodo.org/records/15476149" 
+                            <h4 class="text-lg font-medium text-[rgb(42,58,42)] mb-2">Data on renewable targets</h4>
+                            <a href="https://zenodo.org/records/18482541" 
                                target="_blank" 
                                rel="noopener noreferrer"
                                class="content-link">
-                                https://zenodo.org/records/15476149
+                                https://zenodo.org/records/18482541
                             </a>
                         </div>
                         
@@ -84,11 +84,11 @@
                         
                         <div class="bg-[#f5f1e8] p-4 rounded-lg shadow-md border border-gray-200">
                             <h4 class="text-lg font-medium text-[rgb(42,58,42)] mb-2">Data on policy support for renewable electricity</h4>
-                            <a href="https://zenodo.org/records/15477180" 
+                            <a href="https://zenodo.org/records/18327812" 
                                target="_blank" 
                                rel="noopener noreferrer"
                                class="content-link">
-                                https://zenodo.org/records/15477180
+                                https://zenodo.org/records/18327812
                             </a>
                         </div>
                     </div>
@@ -142,18 +142,18 @@
                     const policyDataUrl = 'data/policy_data.xlsx';
                     const targetsDataUrl = 'data/targets_data.csv';
                     const climateTargetsDataUrl = 'data/climate_targets_data.csv';
-                    const evDataUrl = 'data/ev_data.csv';
+                    const evDataUrl = 'data/ev_data.xlsx';
                     const infoDataUrl = 'data/info_data.xlsx';
                     
                     try {
                         downloadLink.textContent = 'Downloading...';
                         downloadLink.style.pointerEvents = 'none';
                         
-                        const [policyBuffer, targetsCsv, climateTargetsCsv, evCsv, infoBuffer] = await Promise.all([
+                        const [policyBuffer, targetsCsv, climateTargetsCsv, evBuffer, infoBuffer] = await Promise.all([
                             fetch(policyDataUrl).then(r => r.arrayBuffer()),
                             fetch(targetsDataUrl).then(r => r.text()),
                             fetch(climateTargetsDataUrl).then(r => r.text()),
-                            fetch(evDataUrl).then(r => r.text()),
+                            fetch(evDataUrl).then(r => r.arrayBuffer()),
                             fetch(infoDataUrl).then(r => r.arrayBuffer())
                         ]);
                         
@@ -218,14 +218,17 @@
                         const policySheet = policyWb.Sheets[policyWb.SheetNames[0]];
                         const targetsSheet = XLSX.utils.aoa_to_sheet(parseCSV(targetsCsv));
                         const climateSheet = XLSX.utils.aoa_to_sheet(parseCSV(climateTargetsCsv));
-                        const evSheet = XLSX.utils.aoa_to_sheet(parseCSV(evCsv));
+                        // EV data is now xlsx - read the data sheet (second sheet, skip About)
+                        const evWb = XLSX.read(evBuffer);
+                        const evDataSheetName = evWb.SheetNames.length > 1 ? evWb.SheetNames[1] : evWb.SheetNames[0];
+                        const evSheet = evWb.Sheets[evDataSheetName];
                         
                         XLSX.utils.book_append_sheet(wb, policySheet, 'Policies');
                         XLSX.utils.book_append_sheet(wb, targetsSheet, 'Targets');
                         XLSX.utils.book_append_sheet(wb, climateSheet, 'ClimateTargets');
                         XLSX.utils.book_append_sheet(wb, evSheet, 'EV_Support');
                         
-                        XLSX.writeFile(wb, 'Climate_Policy_Atlas_1.0.xlsx');
+                        XLSX.writeFile(wb, 'Climate_Policy_Atlas_1.0.xlsx', { compression: true });
                         
                         downloadLink.textContent = 'here';
                         downloadLink.style.pointerEvents = 'auto';
