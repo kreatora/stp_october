@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barrierefreiheit / Accessibility - Climate Policy Atlas</title>
+    <title>Accessibility - Climate Policy Atlas</title>
     <!-- Typography loaded via self-hosted @font-face in shared.css (GDPR-compliant) -->
-  <link rel="stylesheet" crossorigin href="./assets/shared.ChiTheaB.css">
+  <link rel="stylesheet" crossorigin href="./assets/shared.CvIvtcM_.css">
 </head>
 <body class="bg-stone-800 text-neutral-700">
     <header class="text-white">
@@ -32,80 +32,142 @@
 
     <main class="p-4 md:p-8 bg-custom min-h-screen">
         <section class="max-w-4xl mx-auto py-6">
-            <h1 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline text-center mb-6 md:mb-8">Erklärung zur Barrierefreiheit</h1>
+            <h1 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline text-center mb-6 md:mb-8">
+                <span class="lang-en">Accessibility Statement</span>
+                <span class="lang-de" style="display:none">Erklärung zur Barrierefreiheit</span>
+            </h1>
 
-            <div class="legal-content bg-white p-6 md:p-10 rounded-lg shadow-xl">
+            <div class="legal-content bg-white p-6 md:p-10 rounded-lg shadow-xl" data-lang="en">
 
-                <p>Die öffentlichen Stellen sind gemäß der Richtlinie (EU) 2016/2102 des Europäischen Parlaments und des Rates dazu verpflichtet, Webauftritte und mobile Anwendungen barrierefrei zugänglich zu machen. Dies erfolgt im Einklang mit der <a href="http://gesetze-bayern.de/Content/Document/BayBGG/true">gültigen Gesetzgebung</a>.</p>
-
-                <p>Diese Erklärung zur Barrierefreiheit gilt für den Webauftritt unter: <strong><em>www.climatepolicyatlas.org</em></strong></p>
-
-                <h2>Stand der Vereinbarkeit mit den Anforderungen (&bdquo;Konformitätsstatus&ldquo;)</h2>
-
-                <div class="legal-alert legal-alert-warning">
-                    <p>Dieser Webauftritt ist noch nicht vollständig mit den Anforderungen der Barrierefreiheit vereinbar. Die Anforderungen werden schrittweise umgesetzt.</p>
+                <div class="lang-toggle">
+                    <button class="lang-toggle-btn active" data-lang-btn="en">English</button>
+                    <button class="lang-toggle-btn" data-lang-btn="de">Deutsch</button>
                 </div>
 
-                <table class="legal-info-table">
-                    <tr>
-                        <th>Erstellungsdatum:</th>
-                        <td>März 2026</td>
-                    </tr>
-                </table>
+                <!-- ==================== ENGLISH ==================== -->
+                <div class="lang-en">
+                    <p>Public authorities are obliged to make websites and mobile applications accessible in accordance with Directive (EU) 2016/2102 of the European Parliament and of the Council. The following accessibility statement documents the implementation status of this website in accordance with the <a href="http://gesetze-bayern.de/Content/Document/BayBGG/true">applicable legislation</a>.</p>
+                    <p>The accessibility statement belongs to the following website: <strong><em>www.climatepolicyatlas.org</em></strong></p>
 
-                <h2>Bekannte Probleme bei der Barrierefreiheit</h2>
-                <p>Auflistung und Erläuterung der Probleme bei der Umsetzung der Barrierefreiheit dieses Webauftritts.</p>
+                    <h2>Compliance status</h2>
+                    <div class="legal-alert legal-alert-warning">
+                        <p>This website is not yet fully compliant with accessibility requirements. The requirements are being implemented step by step.</p>
+                    </div>
+                    <table class="legal-info-table">
+                        <tr><th>Creation Date:</th><td>March 2026</td></tr>
+                    </table>
 
-                <h3>Nicht barrierefrei zugängliche Inhalte</h3>
-                <ul>
-                    <li>Interaktive Datenvisualisierungen (D3.js-Weltkarte, Ontologie-Baum) sind derzeit nicht vollständig mit Tastatur und Screenreader bedienbar.</li>
-                    <li>Einige Bilder verfügen möglicherweise nicht über ausreichende Alternativtexte.</li>
-                </ul>
+                    <h2>Known accessibility issues</h2>
+                    <p>Listing and explanation of the problems with the implementation of the accessibility of this website.</p>
 
-                <h3>Begründung</h3>
-                <p>Die Website befindet sich noch im Aufbau. Die Barrierefreiheit der interaktiven Visualisierungen wird schrittweise verbessert.</p>
+                    <h3>Content that is not accessible to the disabled</h3>
+                    <ul>
+                        <li>Interactive data visualisations (D3.js world map, ontology tree) are not yet fully operable via keyboard and screen reader.</li>
+                        <li>Some images may not have sufficient alternative texts.</li>
+                    </ul>
 
-                <h3>Alternative Zugangswege</h3>
-                <p>Die Forschungsdaten können alternativ als strukturierte Dateien (Excel, CSV) über die <a href="data.html">Daten-Seite</a> heruntergeladen werden.</p>
+                    <h3>Reason</h3>
+                    <p>The website is still under development. The accessibility of the interactive visualisations is being improved step by step.</p>
 
-                <hr class="legal-divider">
+                    <h3>Alternative access routes</h3>
+                    <p>The research data can alternatively be downloaded as structured files (Excel, CSV) via the <a href="data.html">Data page</a>.</p>
 
-                <h2>Hilfe und Kontaktaufnahme bei Problemen</h2>
-                <p>Sie können Mängel bei der Einhaltung der Anforderungen an die Barrierefreiheit mitteilen oder Informationen, die nicht barrierefrei dargestellt werden müssen, barrierefrei anfordern.</p>
+                    <hr class="legal-divider">
 
-                <h3>Kontaktperson</h3>
-                <p><strong>Ioannis Milioritsas</strong></p>
-                <ul class="legal-contact-list">
-                    <li>Telefon: +49 911 5302-95142</li>
-                    <li>E-Mail: <a href="mailto:ioannis.milioritsas@fau.de">ioannis.milioritsas@fau.de</a></li>
-                </ul>
+                    <h2>Help and contact in case of problems</h2>
+                    <p>You may have shortcomings in meeting the requirements notify the accessibility or information that is not accessible be presented barrier-free.</p>
 
-                <hr class="legal-divider">
+                    <h3>Contact Person</h3>
+                    <p><strong>Ioannis Milioritsas</strong></p>
+                    <ul class="legal-contact-list">
+                        <li>Phone: +49 911 5302-95142</li>
+                        <li>EMail: <a href="mailto:ioannis.milioritsas@fau.de">ioannis.milioritsas@fau.de</a></li>
+                    </ul>
 
-                <h2>Durchsetzungsverfahren</h2>
-                <p>Bleibt eine Anfrage über die Kontaktmöglichkeit innerhalb von sechs Wochen ganz oder teilweise unbeantwortet, prüft die zuständige Aufsichtsbehörde auf Antrag des Nutzers, ob im Rahmen der Überwachung gegenüber dem Verpflichteten Maßnahmen erforderlich sind.</p>
+                    <hr class="legal-divider">
 
-                <p>Kontaktinformation der für das Durchsetzungsverfahren zuständigen Aufsicht:</p>
+                    <h2>Enforcement procedures</h2>
+                    <p>Remains a request for the possibility of contact within six weeks in full or in part unanswered, the competent authority checks at the request of the user, whether in the context of monitoring against the operators of the web offer measures are required.</p>
+                    <p>Contact information of the enforcement oversight body:</p>
+                    <p><strong>Landesamt für Digitalisierung, Breitband und Vermessung</strong><br>
+                    IT-Dienstleistungszentrum des Freistaats Bayern<br>
+                    Durchsetzungs- und Überwachungsstelle für barrierefreie Informationstechnik</p>
+                    <address>
+                        St.-Martin-Straße 47<br>
+                        81541 München
+                    </address>
+                    <ul class="legal-contact-list">
+                        <li>Phone: +49 89 2129-1111</li>
+                        <li>EMail: <a href="mailto:bitv@bayern.de">bitv@bayern.de</a></li>
+                        <li>Web: <a href="https://www.ldbv.bayern.de/digitalisierung/bitv.html">www.ldbv.bayern.de/digitalisierung/bitv.html</a></li>
+                    </ul>
+                </div>
 
-                <p><strong>Landesamt für Digitalisierung, Breitband und Vermessung</strong><br>
-                IT-Dienstleistungszentrum des Freistaats Bayern<br>
-                Durchsetzungs- und Überwachungsstelle für barrierefreie Informationstechnik</p>
-                <address>
-                    St.-Martin-Straße 47<br>
-                    81541 München
-                </address>
-                <ul class="legal-contact-list">
-                    <li>Telefon: +49 89 2129-1111</li>
-                    <li>E-Mail: <a href="mailto:bitv@bayern.de">bitv@bayern.de</a></li>
-                    <li>Web: <a href="https://www.ldbv.bayern.de/digitalisierung/bitv.html">www.ldbv.bayern.de/digitalisierung/bitv.html</a></li>
-                </ul>
+                <!-- ==================== DEUTSCH ==================== -->
+                <div class="lang-de">
+                    <p>Die öffentlichen Stellen sind gemäß der Richtlinie (EU) 2016/2102 des Europäischen Parlaments und des Rates dazu verpflichtet, Webauftritte und mobile Anwendungen barrierefrei zugänglich zu machen. Dies erfolgt im Einklang mit der <a href="http://gesetze-bayern.de/Content/Document/BayBGG/true">gültigen Gesetzgebung</a>.</p>
+                    <p>Diese Erklärung zur Barrierefreiheit gilt für den Webauftritt unter: <strong><em>www.climatepolicyatlas.org</em></strong></p>
+
+                    <h2>Stand der Vereinbarkeit mit den Anforderungen (&bdquo;Konformitätsstatus&ldquo;)</h2>
+                    <div class="legal-alert legal-alert-warning">
+                        <p>Dieser Webauftritt ist noch nicht vollständig mit den Anforderungen der Barrierefreiheit vereinbar. Die Anforderungen werden schrittweise umgesetzt.</p>
+                    </div>
+                    <table class="legal-info-table">
+                        <tr><th>Erstellungsdatum:</th><td>März 2026</td></tr>
+                    </table>
+
+                    <h2>Bekannte Probleme bei der Barrierefreiheit</h2>
+                    <p>Auflistung und Erläuterung der Probleme bei der Umsetzung der Barrierefreiheit dieses Webauftritts.</p>
+
+                    <h3>Nicht barrierefrei zugängliche Inhalte</h3>
+                    <ul>
+                        <li>Interaktive Datenvisualisierungen (D3.js-Weltkarte, Ontologie-Baum) sind derzeit nicht vollständig mit Tastatur und Screenreader bedienbar.</li>
+                        <li>Einige Bilder verfügen möglicherweise nicht über ausreichende Alternativtexte.</li>
+                    </ul>
+
+                    <h3>Begründung</h3>
+                    <p>Die Website befindet sich noch im Aufbau. Die Barrierefreiheit der interaktiven Visualisierungen wird schrittweise verbessert.</p>
+
+                    <h3>Alternative Zugangswege</h3>
+                    <p>Die Forschungsdaten können alternativ als strukturierte Dateien (Excel, CSV) über die <a href="data.html">Daten-Seite</a> heruntergeladen werden.</p>
+
+                    <hr class="legal-divider">
+
+                    <h2>Hilfe und Kontaktaufnahme bei Problemen</h2>
+                    <p>Sie können Mängel bei der Einhaltung der Anforderungen an die Barrierefreiheit mitteilen oder Informationen, die nicht barrierefrei dargestellt werden müssen, barrierefrei anfordern.</p>
+
+                    <h3>Kontaktperson</h3>
+                    <p><strong>Ioannis Milioritsas</strong></p>
+                    <ul class="legal-contact-list">
+                        <li>Telefon: +49 911 5302-95142</li>
+                        <li>E-Mail: <a href="mailto:ioannis.milioritsas@fau.de">ioannis.milioritsas@fau.de</a></li>
+                    </ul>
+
+                    <hr class="legal-divider">
+
+                    <h2>Durchsetzungsverfahren</h2>
+                    <p>Bleibt eine Anfrage über die Kontaktmöglichkeit innerhalb von sechs Wochen ganz oder teilweise unbeantwortet, prüft die zuständige Aufsichtsbehörde auf Antrag des Nutzers, ob im Rahmen der Überwachung gegenüber dem Verpflichteten Maßnahmen erforderlich sind.</p>
+                    <p>Kontaktinformation der für das Durchsetzungsverfahren zuständigen Aufsicht:</p>
+                    <p><strong>Landesamt für Digitalisierung, Breitband und Vermessung</strong><br>
+                    IT-Dienstleistungszentrum des Freistaats Bayern<br>
+                    Durchsetzungs- und Überwachungsstelle für barrierefreie Informationstechnik</p>
+                    <address>
+                        St.-Martin-Straße 47<br>
+                        81541 München
+                    </address>
+                    <ul class="legal-contact-list">
+                        <li>Telefon: +49 89 2129-1111</li>
+                        <li>E-Mail: <a href="mailto:bitv@bayern.de">bitv@bayern.de</a></li>
+                        <li>Web: <a href="https://www.ldbv.bayern.de/digitalisierung/bitv.html">www.ldbv.bayern.de/digitalisierung/bitv.html</a></li>
+                    </ul>
+                </div>
 
             </div>
         </section>
     </main>
 
     <footer style="background-color: rgb(42,58,42); color: #f5f5f0; padding: 1.5rem 2rem;">
-        <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+        <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
             <div>
                 <h4 style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem;">Institution</h4>
                 <p style="font-size: 0.85rem; opacity: 0.9; line-height: 1.4; margin: 0;"><a href="https://www.fau.eu/" target="_blank" rel="noopener noreferrer" style="color: #f5f5f0; text-decoration: none;">Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)</a></p>
@@ -123,9 +185,9 @@
             <div>
                 <h4 style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem;">Legal</h4>
                 <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem; line-height: 1.4;">
-                    <li><a href="imprint.html" style="color: #f5f5f0; text-decoration: none;">Impressum / Imprint</a></li>
-                    <li><a href="privacy.html" style="color: #f5f5f0; text-decoration: none;">Datenschutz / Privacy</a></li>
-                    <li><a href="accessibility.html" style="color: #f5f5f0; text-decoration: none;">Barrierefreiheit / Accessibility</a></li>
+                    <li><a href="imprint.html" style="color: #f5f5f0; text-decoration: none;">Imprint</a></li>
+                    <li><a href="privacy.html" style="color: #f5f5f0; text-decoration: none;">Privacy</a></li>
+                    <li><a href="accessibility.html" style="color: #f5f5f0; text-decoration: none;">Accessibility</a></li>
                 </ul>
             </div>
             <div>
@@ -140,5 +202,19 @@
             <p style="margin: 0;">Last updated: March 2026</p>
         </div>
     </footer>
+
+    <script>
+    document.querySelectorAll('.lang-toggle-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var lang = this.getAttribute('data-lang-btn');
+            document.querySelector('.legal-content').setAttribute('data-lang', lang);
+            document.querySelectorAll('.lang-toggle-btn').forEach(function(b) { b.classList.remove('active'); });
+            this.classList.add('active');
+            document.querySelectorAll('h1 .lang-en, h1 .lang-de').forEach(function(el) {
+                el.style.display = el.classList.contains('lang-' + lang) ? '' : 'none';
+            });
+        });
+    });
+    </script>
 </body>
 </html>
