@@ -34,6 +34,8 @@
     "vite": "^6.3.5"
   },
   "dependencies": {
+    "@fontsource/dm-sans": "^5.2.8",
+    "@fontsource/libre-baskerville": "^5.2.10",
     "d3": "^7.9.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

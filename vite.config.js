@@ -16,6 +16,9 @@ export default defineConfig({
         data: resolve(__dirname, 'data.html'),
         aboutUs: resolve(__dirname, 'about-us.html'),
         worldMap: resolve(__dirname, 'world-map.html'),
+        imprint: resolve(__dirname, 'imprint.html'),
+        privacy: resolve(__dirname, 'privacy.html'),
+        accessibility: resolve(__dirname, 'accessibility.html'),
       },
       output: {
         entryFileNames: 'assets/[name].[hash].js',

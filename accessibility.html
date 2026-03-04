@@ -1,14 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Climate Policy Atlas</title>
-    <!-- Tailwind CSS -->
-    <link rel="stylesheet" href="src/input.css?v=20260116">
+    <title>Barrierefreiheit / Accessibility - Climate Policy Atlas</title>
+    <link rel="stylesheet" href="src/input.css?v=20260304">
     <!-- Typography loaded via self-hosted @font-face in shared.css (GDPR-compliant) -->
-    <!-- Shared styles (single source of truth) -->
-    <link rel="stylesheet" href="src/shared.css?v=20260116">
+    <link rel="stylesheet" href="src/shared.css?v=20260304">
 </head>
 <body class="bg-stone-800 text-neutral-700">
     <header class="text-white">
@@ -23,7 +21,7 @@
         <div class="nav-custom py-4">
             <nav class="container mx-auto text-center">
                 <ul class="flex justify-center space-x-4 md:space-x-6">
-                    <li><a href="index.html" class="text-custom hover:text-white transition-colors duration-200 active-nav nav-item-hover">Home</a></li>
+                    <li><a href="index.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">Home</a></li>
                     <li><a href="ontology.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">Ontology</a></li>
                     <li><a href="world-map.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">World Map</a></li>
                     <li><a href="data.html" class="text-custom hover:text-white transition-colors duration-200 nav-item-hover">Data</a></li>
@@ -33,29 +31,82 @@
         </div>
     </header>
 
-    <main class="p-4 md:p-8 bg-custom min-h-screen relative">
-        <section class="max-w-5xl mx-auto py-6">
-            <h2 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline text-center mb-6 md:mb-8">Welcome!</h2>
+    <main class="p-4 md:p-8 bg-custom min-h-screen">
+        <section class="max-w-4xl mx-auto py-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline text-center mb-6 md:mb-8">Erklärung zur Barrierefreiheit</h1>
 
-            <div class="bg-custom p-8 md:p-10 rounded-lg shadow-xl mb-6 mx-auto max-w-5xl">
-                <p class="text-lg mb-6 text-neutral-700 text-left">Welcome to the Climate Policy Atlas: a project presenting high-resolution, curated and open data on energy and climate policies and targets. The Climate Policy Atlas is based on the Climate and Energy Policy Ontology, a structured, semantic framework for organising climate and energy policy instrument data in a consistent and comparable way. The project aims to enable empirical policy analysis and make existing policy data more accessible and interoperable. The Climate Policy Atlas is funded by the German Research Foundation DFG project NFDI4Energy.</p>
+            <div class="legal-content bg-white p-6 md:p-10 rounded-lg shadow-xl">
+
+                <p>Die öffentlichen Stellen sind gemäß der Richtlinie (EU) 2016/2102 des Europäischen Parlaments und des Rates dazu verpflichtet, Webauftritte und mobile Anwendungen barrierefrei zugänglich zu machen. Dies erfolgt im Einklang mit der <a href="http://gesetze-bayern.de/Content/Document/BayBGG/true">gültigen Gesetzgebung</a>.</p>
+
+                <p>Diese Erklärung zur Barrierefreiheit gilt für den Webauftritt unter: <strong><em>www.climatepolicyatlas.org</em></strong></p>
+
+                <h2>Stand der Vereinbarkeit mit den Anforderungen (&bdquo;Konformitätsstatus&ldquo;)</h2>
+
+                <div class="legal-alert legal-alert-warning">
+                    <p>Dieser Webauftritt ist noch nicht vollständig mit den Anforderungen der Barrierefreiheit vereinbar. Die Anforderungen werden schrittweise umgesetzt.</p>
+                </div>
+
+                <table class="legal-info-table">
+                    <tr>
+                        <th>Erstellungsdatum:</th>
+                        <td>März 2026</td>
+                    </tr>
+                </table>
+
+                <h2>Bekannte Probleme bei der Barrierefreiheit</h2>
+                <p>Auflistung und Erläuterung der Probleme bei der Umsetzung der Barrierefreiheit dieses Webauftritts.</p>
+
+                <h3>Nicht barrierefrei zugängliche Inhalte</h3>
+                <ul>
+                    <li>Interaktive Datenvisualisierungen (D3.js-Weltkarte, Ontologie-Baum) sind derzeit nicht vollständig mit Tastatur und Screenreader bedienbar.</li>
+                    <li>Einige Bilder verfügen möglicherweise nicht über ausreichende Alternativtexte.</li>
+                </ul>
+
+                <h3>Begründung</h3>
+                <p>Die Website befindet sich noch im Aufbau. Die Barrierefreiheit der interaktiven Visualisierungen wird schrittweise verbessert.</p>
+
+                <h3>Alternative Zugangswege</h3>
+                <p>Die Forschungsdaten können alternativ als strukturierte Dateien (Excel, CSV) über die <a href="data.html">Daten-Seite</a> heruntergeladen werden.</p>
+
+                <hr class="legal-divider">
+
+                <h2>Hilfe und Kontaktaufnahme bei Problemen</h2>
+                <p>Sie können Mängel bei der Einhaltung der Anforderungen an die Barrierefreiheit mitteilen oder Informationen, die nicht barrierefrei dargestellt werden müssen, barrierefrei anfordern.</p>
+
+                <h3>Kontaktperson</h3>
+                <p><strong>Ioannis Milioritsas</strong></p>
+                <ul class="legal-contact-list">
+                    <li>Telefon: +49 911 5302-95142</li>
+                    <li>E-Mail: <a href="mailto:ioannis.milioritsas@fau.de">ioannis.milioritsas@fau.de</a></li>
+                </ul>
+
+                <hr class="legal-divider">
+
+                <h2>Durchsetzungsverfahren</h2>
+                <p>Bleibt eine Anfrage über die Kontaktmöglichkeit innerhalb von sechs Wochen ganz oder teilweise unbeantwortet, prüft die zuständige Aufsichtsbehörde auf Antrag des Nutzers, ob im Rahmen der Überwachung gegenüber dem Verpflichteten Maßnahmen erforderlich sind.</p>
+
+                <p>Kontaktinformation der für das Durchsetzungsverfahren zuständigen Aufsicht:</p>
+
+                <p><strong>Landesamt für Digitalisierung, Breitband und Vermessung</strong><br>
+                IT-Dienstleistungszentrum des Freistaats Bayern<br>
+                Durchsetzungs- und Überwachungsstelle für barrierefreie Informationstechnik</p>
+                <address>
+                    St.-Martin-Straße 47<br>
+                    81541 München
+                </address>
+                <ul class="legal-contact-list">
+                    <li>Telefon: +49 89 2129-1111</li>
+                    <li>E-Mail: <a href="mailto:bitv@bayern.de">bitv@bayern.de</a></li>
+                    <li>Web: <a href="https://www.ldbv.bayern.de/digitalisierung/bitv.html">www.ldbv.bayern.de/digitalisierung/bitv.html</a></li>
+                </ul>
+
             </div>
-
-            <div class="mb-8 flex justify-center items-center gap-6">
-                <img src="images/nfdi4energy_logo_cut.png" alt="NFDI4Energy Logo" style="width: 150px; height: auto;">
-                <img src="images/CLIMATE POLICY ATLAS LOGO-Photoroom.png" alt="Climate Policy Atlas Logo" style="width: 150px; height: auto;">
-            </div>
-
-            <!-- React mounting point for index page -->
-            <div id="root"></div>
-
         </section>
-
-        <!-- Decorative images removed per request -->
     </main>
 
     <footer style="background-color: rgb(42,58,42); color: #f5f5f0; padding: 1.5rem 2rem;">
-        <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+        <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
             <div>
                 <h4 style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem;">Institution</h4>
                 <p style="font-size: 0.85rem; opacity: 0.9; line-height: 1.4; margin: 0;"><a href="https://www.fau.eu/" target="_blank" rel="noopener noreferrer" style="color: #f5f5f0; text-decoration: none;">Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)</a></p>
@@ -90,8 +141,5 @@
             <p style="margin: 0;">Last updated: March 2026</p>
         </div>
     </footer>
-
-    <script type="module" src="/src/main.tsx?v=20260116"></script>
-
 </body>
 </html>
