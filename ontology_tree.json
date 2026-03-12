@@ -111,8 +111,8 @@
                     ]
                   },
                   {
-                    "name": "Subsidy removal: subsidy removal abolishes or reduces existing",
-                    "definition": "Subsidy removal: subsidy removal abolishes or reduces existing subsidies for environmentally harmful activities.",
+                    "name": "Subsidy removal",
+                    "definition": "Subsidy removal abolishes or reduces existing subsidies for environmentally harmful activities.",
                     "children": [
                       {
                         "name": "Removal of fossil fuel subsidies",
@@ -397,8 +397,8 @@
                             "children": []
                           },
                           {
-                            "name": "Sectoral energy use cap: a sectoral energy use cap",
-                            "definition": "Sectoral energy use cap: a sectoral energy use cap is an energy use cap that sets the maximum amount for how much energy actors in a certain sector are allowed to consume. This can be (but is not always) a regulatory element of efficiency-related trading systems.",
+                            "name": "Sectoral energy use cap",
+                            "definition": "A sectoral energy use cap is an energy use cap that sets the maximum amount for how much energy actors in a certain sector are allowed to consume. This can be (but is not always) a regulatory element of efficiency-related trading systems.",
                             "children": []
                           }
                         ]
@@ -436,13 +436,13 @@
                         ]
                       },
                       {
-                        "name": "Purchasing requirement / quota: (demand-side quota): A purchasing",
-                        "definition": "Purchasing requirement / quota: (demand-side quota): A purchasing requirement/quota is a quota which requires an actor to acquire a certain share of a clean good or service.",
+                        "name": "Purchasing requirement / quota",
+                        "definition": "A purchasing requirement/quota (demand-side quota) is a quota which requires an actor to acquire a certain share of a clean good or service.",
                         "children": []
                       },
                       {
-                        "name": "Production requirement / quota: (supply-side quota): A production",
-                        "definition": "Production requirement / quota: (supply-side quota): A production requirement/quota is a quota which requires an actor to provide a certain share of a clean good or service. Example: China's supply-side renewables portfolio standards.",
+                        "name": "Production requirement / quota",
+                        "definition": "A production requirement/quota (supply-side quota) is a quota which requires an actor to provide a certain share of a clean good or service. Example: China's supply-side renewables portfolio standards.",
                         "children": []
                       }
                     ]
@@ -484,8 +484,8 @@
                     "children": []
                   },
                   {
-                    "name": "Offsetting rules: offsetting rules",
-                    "definition": "Offsetting rules: offsetting rules are standards which establish GHG emission reductions crediting and offsetting regulations. Example: rules that prohibit using offsetting as part of emissions calculations.",
+                    "name": "Offsetting rules",
+                    "definition": "Offsetting rules are standards which establish GHG emission reductions crediting and offsetting regulations. Example: rules that prohibit using offsetting as part of emissions calculations.",
                     "children": []
                   },
                   {
