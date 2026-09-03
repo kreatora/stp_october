@@ -5,12 +5,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:docs": "BUILD_OUT_DIR=docs vite build",
-    "build:dist": "BUILD_OUT_DIR=dist vite build",
+    "postbuild": "node -e \"require('fs').writeFileSync('docs/.nojekyll','')\"",
+    "build:docs": "cross-env BUILD_OUT_DIR=docs vite build",
+    "build:dist": "cross-env BUILD_OUT_DIR=dist vite build",
+    "extract:regulations": "node scripts/extract_build_regulations.mjs",
     "preview": "vite preview",
     "preview:docs": "vite preview --outDir docs --port 4173",
     "preview:dist": "vite preview --outDir dist --port 4174",
-    "deploy": "npm run build:docs && gh-pages -d docs",
+    "deploy": "npm run build && gh-pages -d docs --nojekyll",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -26,6 +28,7 @@
     "@types/react-dom": "^19.1.5",
     "@vitejs/plugin-react": "^4.5.0",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^7.0.3",
     "gh-pages": "^6.1.1",
     "polylabel": "^2.0.1",
     "postcss": "^8.5.3",
@@ -37,6 +40,7 @@
     "@fontsource/dm-sans": "^5.2.8",
     "@fontsource/libre-baskerville": "^5.2.10",
     "d3": "^7.9.0",
+    "jspdf": "^4.2.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "xlsx": "^0.18.5"

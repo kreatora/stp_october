@@ -10,11 +10,269 @@
     <link rel="stylesheet" href="src/shared.css?v=20260116">
     <style>
         /* Page-specific styles for World Map */
+        #world-map-container {
+            position: relative;
+            width: 100%;
+            min-height: 80vh;
+        }
+        #world-map-container .map-surface {
+            width: 100%;
+            height: 80vh;
+            min-height: 520px;
+        }
         #world-map {
             width: 100%;
             height: 80vh;
+            min-height: 520px;
             background-color: white;
+            display: block;
         }
+        .regulations-submenu {
+            width: min(720px, 92vw);
+        }
+
+        .regulations-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 8px 12px 10px;
+            border-top: 1px solid rgba(203, 213, 225, 0.6);
+        }
+        .regulations-panel-legend {
+            display: none;
+            margin: 0 12px 10px 12px;
+            padding: 8px 10px;
+            border-radius: 9px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(248, 250, 252, 0.95);
+        }
+        .regulations-panel-legend-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 6px;
+            letter-spacing: 0.2px;
+        }
+        .regulations-panel-legend-bar {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            border: 1px solid #cbd5e1;
+            background: linear-gradient(to right, #1a9850 0%, #fee08b 50%, #d73027 100%);
+        }
+        .regulations-panel-legend-labels {
+            margin-top: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            color: #64748b;
+        }
+        .regulations-map-panel-legend {
+            display: none;
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            width: min(260px, calc(100% - 24px));
+            z-index: 8;
+            padding: 2px 0;
+            background: transparent;
+            pointer-events: none;
+        }
+        .regulations-map-panel-legend-title {
+            font-size: 9px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 3px;
+            letter-spacing: 0.2px;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
+        }
+        .regulations-map-panel-legend-bar {
+            width: 100%;
+            height: 6px;
+            border-radius: 999px;
+            background: linear-gradient(to right, #1a9850 0%, #fee08b 50%, #d73027 100%);
+            box-shadow: 0 0 0 1px rgba(100, 116, 139, 0.25);
+        }
+        .regulations-map-panel-legend-labels {
+            margin-top: 2px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9px;
+            color: #475569;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
+        }
+        .regulations-map-panel-legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 9px;
+            color: #475569;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
+        }
+        .regulations-map-panel-legend-swatch {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            border-radius: 2px;
+            border: 1px solid rgba(100, 116, 139, 0.35);
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        .regulations-map-panel-legend-note {
+            margin-top: 4px;
+            font-size: 8.5px;
+            color: #64748b;
+            font-weight: 500;
+            line-height: 1.3;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
+        }
+        .regulations-map-year-filter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .regulations-map-year-filter .bc-year-filter-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: #475569;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
+        }
+        .regulations-map-year-filter .bc-year-pills {
+            display: flex;
+            gap: 4px;
+        }
+        .regulations-map-year-filter .bc-year-pill {
+            pointer-events: auto;
+            min-width: 48px;
+            padding: 4px 8px;
+            border-radius: 7px;
+            border: 1.5px solid rgba(71, 85, 105, 0.45);
+            background: rgba(255, 255, 255, 0.92);
+            color: #1e293b;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .regulations-map-year-filter .bc-year-pill:hover {
+            border-color: rgba(51, 65, 85, 0.7);
+            background: #fff;
+        }
+        .regulations-map-year-filter .bc-year-pill.active {
+            background: rgb(30, 41, 59);
+            color: #fff;
+            border-color: transparent;
+        }
+        .map-choropleth-legend {
+            display: none;
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            z-index: 8;
+            max-width: min(220px, calc(100% - 24px));
+            padding: 8px 10px 9px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+            pointer-events: none;
+            backdrop-filter: blur(6px);
+        }
+        .map-choropleth-legend.is-visible {
+            display: block;
+        }
+        #world-map-container.has-data-attribution .map-choropleth-legend {
+            bottom: 58px;
+        }
+        .map-choropleth-legend-title {
+            margin: 0 0 6px;
+            font-size: 9.5px;
+            font-weight: 600;
+            line-height: 1.3;
+            color: #334155;
+        }
+        .map-choropleth-legend-scale {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .map-choropleth-legend-bar {
+            flex: 1;
+            height: 6px;
+            min-width: 72px;
+            border-radius: 999px;
+            border: 1px solid rgba(100, 116, 139, 0.22);
+            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.35);
+        }
+        .map-choropleth-legend-end {
+            font-size: 9px;
+            font-weight: 600;
+            color: #64748b;
+            font-variant-numeric: tabular-nums;
+            min-width: 1.2em;
+            text-align: center;
+        }
+        .regulations-filter-group {
+            flex: 0 0 auto;
+        }
+        .regulations-filter-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: rgb(30, 41, 59);
+            margin-bottom: 4px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        .regulations-filter-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .regulations-filter-option {
+            padding: 4px 9px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1.5px solid rgba(100, 116, 139, 0.45);
+            border-radius: 999px;
+            font-size: 10.5px;
+            font-weight: 600;
+            color: rgb(30, 41, 59);
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+        .regulations-filter-option:hover {
+            background: rgba(241, 245, 249, 0.95);
+        }
+        .regulations-filter-option.active {
+            background: linear-gradient(135deg, rgb(30, 41, 59) 0%, rgb(51, 65, 85) 100%);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .regulations-aux {
+            display: none;
+            text-align: left;
+            margin-top: 12px;
+        }
+        .regulations-aux.visible {
+            display: block;
+        }
+
+        .modal-header-logo {
+            height: 48px;
+            width: auto;
+            max-width: 200px;
+            object-fit: contain;
+            opacity: 1;
+            pointer-events: none;
+        }
+
         .country {
             stroke: #fff;
             stroke-width: 0.5px;
@@ -22,41 +280,46 @@
             transition: stroke-width 0.2s;
         }
         .map-controls {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 20; /* Keep inside map box and under modal */
+            position: relative;
+            z-index: 20; /* Keep above the map surface and under modal */
             display: flex;
-            justify-content: flex-start;
+            justify-content: center;
             align-items: flex-start;
+            padding: 12px 16px 16px;
         }
-        
+
         /* Modern Toggle Switch Container */
         .toggle-switch-container {
+            position: relative;
             display: flex;
             align-items: center;
+            justify-content: center;
         }
-        
+
         /* Toggle Switch Track */
         .toggle-switch {
             position: relative;
             display: inline-block;
-            /* Width/height will be adapted via JS to ~10% of map width for 4 options */
-            width: 520px;
+            /* Responsive width; JS clamps further if needed.
+               Old code used absolute positioning over the SVG and forced
+               a width via adaptToggleSize. The bar now lives in its own
+               header row above the map / regulations surface. */
+            width: clamp(360px, 86vw, 760px);
             height: 52px;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(241, 245, 249, 0.98) 100%);
+            background: linear-gradient(135deg, rgb(255, 255, 255) 0%, rgb(241, 245, 249) 100%);
             border-radius: 24px;
-            border: 2px solid rgba(148, 163, 184, 0.95);
+            border: 2px solid rgba(148, 163, 184, 0.75);
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.18), inset 0 2px 6px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15), inset 0 2px 6px rgba(0,0,0,0.065);
             backdrop-filter: blur(10px);
-            opacity: 0.88; /* slightly transparent when not hovered */
+            opacity: 1;
         }
         
         .toggle-switch:hover {
-            /* Remove hover ring/overlay; keep subtle elevation and full opacity */
-            box-shadow: 0 6px 25px rgba(0,0,0,0.12), inset 0 2px 4px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, rgb(255, 255, 255) 0%, rgb(241, 245, 249) 100%);
+            border-color: rgba(148, 163, 184, 0.88);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.11), inset 0 2px 4px rgba(0,0,0,0.08);
             transform: translateY(-1px);
             opacity: 1;
         }
@@ -66,8 +329,8 @@
             position: absolute;
             top: 2px;
             left: 2px;
-            /* Slider width tracks one quarter of the toggle width for 4 options */
-            width: calc(25% - 4px);
+            /* Slider width tracks one fifth of the toggle width for 5 options */
+            width: calc(20% - 4px);
             height: calc(100% - 8px);
             background: linear-gradient(135deg, rgb(30, 41, 59) 0%, rgb(51, 65, 85) 100%);
             border-radius: 20px;
@@ -89,17 +352,19 @@
             transform: translateY(-50%);
             font-weight: 700;
             /* Scale text slightly with viewport while keeping bounds */
-            font-size: clamp(9px, 1.4vw, 11px);
+            font-size: clamp(7px, 1.05vw, 9px);
             letter-spacing: 0.2px;
+            line-height: 1.12;
             transition: all 0.3s ease;
             cursor: pointer;
             user-select: none;
             z-index: 10;
-            padding: 4px 6px;
+            padding: 3px 4px;
             border-radius: 12px;
-            min-width: 60px;
+            min-width: 0;
             text-align: center;
-            white-space: nowrap;
+            white-space: normal;
+            max-width: calc(20% - 12px);
         }
         
         .toggle-option:hover {
@@ -109,27 +374,60 @@
         }
         
         .toggle-option.first {
-            left: 12.5%;
+            left: 10%;
             transform: translate(-50%, -50%);
             color: white;
         }
         
         .toggle-option.second {
-            left: 37.5%;
+            left: 30%;
             transform: translate(-50%, -50%);
             color: rgb(30, 41, 59);
         }
         
         .toggle-option.third {
-            left: 62.5%;
+            left: 50%;
             transform: translate(-50%, -50%);
             color: rgb(30, 41, 59);
         }
         
         .toggle-option.fourth {
-            left: 87.5%;
+            left: 70%;
             transform: translate(-50%, -50%);
             color: rgb(30, 41, 59);
+        }
+
+        .toggle-option.fifth {
+            left: 90%;
+            transform: translate(-50%, -50%);
+            color: rgb(30, 41, 59);
+        }
+
+        .regulations-dev-notice {
+            padding: 16px 14px 18px;
+            text-align: center;
+            color: #475569;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .regulations-dev-notice strong {
+            display: block;
+            color: #1e293b;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        .regulations-dev-notice p {
+            margin: 0;
+        }
+
+        .submenu-option .submenu-option-note {
+            display: block;
+            font-size: 0.68em;
+            font-weight: 500;
+            opacity: 0.8;
+            margin-top: 2px;
         }
         
         /* Active states */
@@ -144,18 +442,20 @@
         
         .toggle-switch[data-active="policies"] .toggle-option.second,
         .toggle-switch[data-active="policies"] .toggle-option.third,
-        .toggle-switch[data-active="policies"] .toggle-option.fourth {
+        .toggle-switch[data-active="policies"] .toggle-option.fourth,
+        .toggle-switch[data-active="policies"] .toggle-option.fifth {
             color: rgb(100, 116, 139);
             opacity: 0.7;
         }
         
         .toggle-switch[data-active="ev"] .toggle-slider {
-            left: calc(25% + 2px);
+            left: calc(20% + 2px);
         }
         
         .toggle-switch[data-active="ev"] .toggle-option.first,
         .toggle-switch[data-active="ev"] .toggle-option.third,
-        .toggle-switch[data-active="ev"] .toggle-option.fourth {
+        .toggle-switch[data-active="ev"] .toggle-option.fourth,
+        .toggle-switch[data-active="ev"] .toggle-option.fifth {
             color: rgb(100, 116, 139);
             opacity: 0.7;
         }
@@ -166,12 +466,13 @@
         }
         
         .toggle-switch[data-active="targets"] .toggle-slider {
-            left: calc(50% + 2px);
+            left: calc(40% + 2px);
         }
         
         .toggle-switch[data-active="targets"] .toggle-option.first,
         .toggle-switch[data-active="targets"] .toggle-option.second,
-        .toggle-switch[data-active="targets"] .toggle-option.fourth {
+        .toggle-switch[data-active="targets"] .toggle-option.fourth,
+        .toggle-switch[data-active="targets"] .toggle-option.fifth {
             color: rgb(100, 116, 139);
             opacity: 0.7;
         }
@@ -182,17 +483,35 @@
         }
         
         .toggle-switch[data-active="climateTargets"] .toggle-slider {
-            left: calc(75% + 2px);
+            left: calc(60% + 2px);
         }
         
         .toggle-switch[data-active="climateTargets"] .toggle-option.first,
         .toggle-switch[data-active="climateTargets"] .toggle-option.second,
-        .toggle-switch[data-active="climateTargets"] .toggle-option.third {
+        .toggle-switch[data-active="climateTargets"] .toggle-option.third,
+        .toggle-switch[data-active="climateTargets"] .toggle-option.fifth {
             color: rgb(100, 116, 139);
             opacity: 0.7;
         }
         
         .toggle-switch[data-active="climateTargets"] .toggle-option.fourth {
+            color: white;
+            opacity: 1;
+        }
+
+        .toggle-switch[data-active="regulations"] .toggle-slider {
+            left: calc(80% + 2px);
+        }
+
+        .toggle-switch[data-active="regulations"] .toggle-option.first,
+        .toggle-switch[data-active="regulations"] .toggle-option.second,
+        .toggle-switch[data-active="regulations"] .toggle-option.third,
+        .toggle-switch[data-active="regulations"] .toggle-option.fourth {
+            color: rgb(100, 116, 139);
+            opacity: 0.7;
+        }
+
+        .toggle-switch[data-active="regulations"] .toggle-option.fifth {
             color: white;
             opacity: 1;
         }
@@ -207,15 +526,17 @@
         }
         
         /* Targets Submenu Styles */
-        .targets-submenu {
+        .targets-submenu,
+        .climate-targets-submenu,
+        .regulations-submenu {
             position: absolute;
             top: 60px;
             left: 0;
             width: 380px;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.99) 0%, rgba(241, 245, 249, 0.99) 100%);
-            border: 2px solid rgba(148, 163, 184, 0.95);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.58) 0%, rgba(241, 245, 249, 0.58) 100%);
+            border: 2px solid rgba(148, 163, 184, 0.45);
             border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2), 0 6px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1), 0 6px 20px rgba(0,0,0,0.07);
             backdrop-filter: blur(14px);
             opacity: 0;
             visibility: hidden;
@@ -226,12 +547,19 @@
             overflow: hidden;
         }
         
-        .targets-submenu.visible {
-            opacity: 0.92; /* slightly transparent when not hovered */
+        .targets-submenu.visible,
+        .climate-targets-submenu.visible,
+        .regulations-submenu.visible {
+            opacity: 0.55;
             visibility: visible;
             transform: translateY(0) scale(1);
         }
-        .targets-submenu.visible:hover { opacity: 1; }
+        .targets-submenu.visible:hover,
+        .climate-targets-submenu.visible:hover,
+        .regulations-submenu.visible:hover {
+            opacity: 0.98;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.97) 0%, rgba(241, 245, 249, 0.97) 100%);
+        }
         
         .submenu-header {
             display: flex;
@@ -322,14 +650,18 @@
             font-weight: 700;
             color: rgb(30, 41, 59);
             margin-bottom: 6px;
+            text-align: center;
         }
         .year-group-options {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            display: flex;
+            justify-content: center;
+            align-items: center;
             gap: 6px;
         }
         .year-option {
-            padding: 8px 6px;
+            flex: 0 0 auto;
+            min-width: 64px;
+            padding: 8px 14px;
             background: rgba(255, 255, 255, 0.6);
             border: 1.5px solid rgba(71, 85, 105, 0.5);
             border-radius: 8px;
@@ -359,10 +691,10 @@
             top: 60px;
             left: 0;
             width: 380px;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.99) 0%, rgba(241, 245, 249, 0.99) 100%);
-            border: 2px solid rgba(148, 163, 184, 0.95);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.58) 0%, rgba(241, 245, 249, 0.58) 100%);
+            border: 2px solid rgba(148, 163, 184, 0.45);
             border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2), 0 6px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1), 0 6px 20px rgba(0,0,0,0.07);
             backdrop-filter: blur(14px);
             opacity: 0;
             visibility: hidden;
@@ -374,11 +706,14 @@
         }
         
         .climate-targets-submenu.visible {
-            opacity: 0.92; /* slightly transparent when not hovered */
+            opacity: 0.55;
             visibility: visible;
             transform: translateY(0) scale(1);
         }
-        .climate-targets-submenu.visible:hover { opacity: 1; }
+        .climate-targets-submenu.visible:hover {
+            opacity: 0.98;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.97) 0%, rgba(241, 245, 249, 0.97) 100%);
+        }
         
         .submenu-option {
             display: block;
@@ -595,12 +930,17 @@
     <main class="p-4 md:p-8 bg-custom min-h-screen">
         <section class="max-w-7xl mx-auto py-6 text-center">
             <h2 class="text-3xl md:text-4xl font-bold text-[rgb(42,58,42)] title-underline text-center mb-6 md:mb-8">Climate Policy Atlas</h2>
-            
+
             <!-- How to use: persistent helper (no background, smaller italic text) -->
-            <div class="mx-auto max-w-5xl mb-4">
+            <div class="mx-auto max-w-5xl mb-4" id="bc-worldmap-help">
                 <p class="text-left italic" style="font-size: 0.85rem; color: #334155;">
-                    Drag to pan and scroll or pinch to zoom. Click any country to open its dashboard (Mostly For Europe as yet); In the dashboard charts, click policy cells in the timeline to view policy 
-                    details.
+                    Drag to pan and scroll or pinch to zoom. Click any country to open its dashboard (Mostly For Europe as yet); In the dashboard charts, hover over policy cells in the timeline for a quick summary, or click for full details.
+                </p>
+            </div>
+            <div class="mx-auto max-w-5xl mb-4 hidden" id="bc-buildcodes-help">
+                <p class="text-left italic" style="font-size: 0.85rem; color: #334155;">
+                    Sub-national renewable &amp; EV build regulations for Germany, Ireland, and Greece.
+                    Click a surveyed region for regulation details. Use As of year there, or on the map, to compare 2008, 2022, and 2024.
                 </p>
             </div>
             
@@ -608,64 +948,93 @@
                 <!-- Hidden radio buttons for compatibility -->
                     <label style="display: none;">
                         <input type="radio" name="mapType" value="policies" checked>
-                        <span>RE Support</span>
+                        <span>Renewable Electricity Support</span>
                     </label>
                     <label style="display: none;">
                         <input type="radio" name="mapType" value="ev">
-                        <span>EV Support</span>
+                        <span>Electric Vehicle Support</span>
                     </label>
                     <label style="display: none;">
                         <input type="radio" name="mapType" value="targets">
-                        <span>TARGETS</span>
+                        <span>Renewable Electricity Targets</span>
+                    </label>
+                    <label style="display: none;">
+                        <input type="radio" name="mapType" value="climateTargets">
+                        <span>Climate Targets</span>
+                    </label>
+                    <label style="display: none;">
+                        <input type="radio" name="mapType" value="regulations">
+                        <span>Siting Regulations</span>
                     </label>
                 
                 <div id="loading-message">Loading data, please wait a moment...</div>
-                
-                <!-- Map box wrapper to anchor controls inside the SVG area -->
-                <div id="world-map-container" class="relative">
-                    <svg id="world-map"></svg>
-                    
-                    <!-- Map Type Controls - Fully inside the map box -->
-                    <div class="map-controls">
-                        <div class="toggle-switch-container">
-                            <div class="toggle-switch" data-active="policies" id="mapTypeToggle">
-                                <div class="toggle-slider"></div>
-                                <div class="toggle-option first">RE Support</div>
-                                <div class="toggle-option second">EV Support</div>
-                                <div class="toggle-option third">Renewables Targets</div>
-                                <div class="toggle-option fourth">Climate Targets</div>
+
+                <!-- Map mode bar: lives in its own header row so it stays visually
+                     stable when the surface below switches between the world-map
+                     SVG and the regulations panel. -->
+                <div class="map-controls">
+                    <div class="toggle-switch-container">
+                        <div class="toggle-switch" data-active="policies" id="mapTypeToggle">
+                            <div class="toggle-slider"></div>
+                            <div class="toggle-option first">Renewable Electricity Support</div>
+                            <div class="toggle-option second">Electric Vehicle Support</div>
+                            <div class="toggle-option third">Renewable Electricity Targets</div>
+                            <div class="toggle-option fourth">Climate Targets</div>
+                            <div class="toggle-option fifth">Siting Regulations</div>
+                        </div>
+
+                        <!-- Targets Submenu -->
+                        <div class="targets-submenu" id="targetsSubmenu">
+                            <div class="submenu-header">
+                                <span class="submenu-title">Target Types</span>
+                                <button class="submenu-close" id="submenuClose">&times;</button>
                             </div>
-                            
-                            <!-- Targets Submenu -->
-                            <div class="targets-submenu" id="targetsSubmenu">
-                                <div class="submenu-header">
-                                    <span class="submenu-title">Target Types</span>
-                                    <button class="submenu-close" id="submenuClose">&times;</button>
-                                </div>
-                                <div class="year-group-wrapper" id="yearGroupWrapper">
-                                    <div class="year-group-title">Targeted Year</div>
-                                    <div class="year-group-options" id="yearGroupOptions"></div>
-                                </div>
-                                <div class="submenu-options" id="submenuOptions">
-                                    <!-- Target type options will be dynamically populated -->
-                                </div>
+                            <div class="year-group-wrapper" id="yearGroupWrapper">
+                                <div class="year-group-title">Targeted Year (latest)</div>
+                                <div class="year-group-options" id="yearGroupOptions"></div>
                             </div>
-                            
-                            <!-- Climate Targets Submenu -->
-                            <div class="climate-targets-submenu" id="climateTargetsSubmenu">
-                                <div class="submenu-header">
-                                    <span class="submenu-title">Emission Targets <span class="submenu-note">(% Change compared to 1990 emissions baseline)</span></span>
-                                    <button class="submenu-close" id="climateSubmenuClose">&times;</button>
-                                </div>
-                                <div class="year-group-wrapper" id="climateYearGroupWrapper">
-                                    <div class="year-group-title">Targeted Year</div>
-                                    <div class="year-group-options" id="climateYearGroupOptions"></div>
-                                </div>
+                            <div class="submenu-options" id="submenuOptions">
+                                <!-- Target type options will be dynamically populated -->
                             </div>
+                        </div>
+
+                        <!-- Climate Targets Submenu -->
+                        <div class="climate-targets-submenu" id="climateTargetsSubmenu">
+                            <div class="submenu-header">
+                                <span class="submenu-title">Emission Targets <span class="submenu-note">(% Change compared to 1990 emissions baseline)</span></span>
+                                <button class="submenu-close" id="climateSubmenuClose">&times;</button>
+                            </div>
+                            <div class="year-group-wrapper" id="climateYearGroupWrapper">
+                                <div class="year-group-title">Targeted Year (latest)</div>
+                                <div class="year-group-options" id="climateYearGroupOptions"></div>
+                            </div>
+                        </div>
+
+                        <!-- Regulations Submenu -->
+                        <div class="regulations-submenu" id="regulationsSubmenu">
+                            <div class="submenu-header">
+                                <span class="submenu-title">Build Codes</span>
+                                <button class="submenu-close" id="regulationsSubmenuClose">&times;</button>
+                            </div>
+                            <div class="regulations-filters" id="regulationsFilters"></div>
+                            <div class="regulations-panel-legend" id="regulations-panel-legend"></div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Fixed map surface — regulations render on the same SVG as policy modes. -->
+                <div id="world-map-container" class="relative map-surface">
+                    <svg id="world-map" class="map-surface"></svg>
+                    <div id="map-choropleth-legend" class="map-choropleth-legend" aria-hidden="true"></div>
+                    <div class="regulations-map-panel-legend" id="regulations-map-panel-legend"></div>
+                </div>
+
+                <!-- Stats, country detail, and citations below the map (no second map bar). -->
+                <div id="regulations-aux" class="regulations-aux">
+                    <div id="build-codes-view"></div>
+                </div>
             </div>
+
             <div id="panel-backdrop"></div>
             <div id="policy-panel">
                 <button id="close-panel" style="position: absolute; top: 10px; right: 20px; background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
@@ -687,9 +1056,10 @@
     <!-- Modal for dashboard (adaptive 85% of viewport) -->
     <div id="chart-modal" class="fixed inset-0 flex items-center justify-center p-4 z-50 hidden">
         <div id="modal-window" class="rounded-lg shadow-2xl relative" style="background-color: rgba(255, 255, 255, 0.90); width: 85vw; height: 85vh;">
-            <div id="modal-header" class="flex justify-between items-center p-4 bg-gray-100 bg-opacity-80 rounded-t-lg cursor-move">
-                <h3 id="modal-title" class="text-lg font-semibold text-gray-800">Country Dashboard</h3>
-                <button id="close-modal" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
+            <div id="modal-header" class="flex items-center gap-3 p-4 bg-gray-100 bg-opacity-80 rounded-t-lg cursor-move">
+                <h3 id="modal-title" class="text-lg font-semibold text-gray-800 flex-1 min-w-0 truncate">Country Dashboard</h3>
+                <img id="modal-header-logo" src="images/CLIMATE POLICY ATLAS LOGO-Photoroom.png" alt="" class="modal-header-logo shrink-0" aria-hidden="true">
+                <button id="close-modal" class="text-gray-500 hover:text-gray-700 text-2xl font-bold shrink-0 leading-none" type="button" aria-label="Close">&times;</button>
             </div>
             <div id="modal-content" class="p-4 h-[calc(100%-60px)] overflow-auto"></div>
         </div>
@@ -732,6 +1102,7 @@
         </div>
     </footer>
 
-    <script type="module" src="/src/world-map.ts?v=20260116"></script>
+    <script type="module" src="/src/world-map.ts?v=20260903o"></script>
+    <script type="module" src="/src/build-codes.ts?v=20260608o"></script>
 </body>
 </html>
